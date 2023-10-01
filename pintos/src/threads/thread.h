@@ -140,4 +140,6 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
+bool thread_comp_awakeTicks (struct list_elem * In, struct list_elem * b, void *aux UNUSED);
+
 #endif /* threads/thread.h */
