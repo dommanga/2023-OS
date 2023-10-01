@@ -246,6 +246,22 @@ thread_unblock (struct thread *t)
   intr_set_level (old_level);
 }
 
+void
+thread_sleep (int64_t ticks)
+{ 
+  struct thread *cur = thread_current ();
+  enum intr_level old_level;
+
+  old_level = intr_disable();
+  if (cur != idle_thread)
+  {
+    cur->awake_ticks = ticks;
+    list_insert_ordered(&sleep_list, &cur->elem, thread_comp_awakeTicks, NULL); //insert thread in sleep_list by ascending order of awake ticks
+    thread_block();
+  }
+  intr_set_level(old_level);
+}
+
 /* Returns the name of the running thread. */
 const char *
 thread_name (void) 
