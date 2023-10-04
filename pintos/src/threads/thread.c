@@ -375,7 +375,8 @@ thread_foreach (thread_action_func *func, void *aux)
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) 
-{
+{ 
+  
   thread_current ()->priority = new_priority;
 }
 
@@ -435,6 +436,7 @@ thread_comp_priority (struct list_elem * In, struct list_elem * b, void *aux UNU
   return val;
 }
 
+/* Compare priority of current thread vs first thread in ready_list. If priority of first thread is bigger than current thread's, then execute CPU yield.*/
 bool 
 thread_cur_vs_ready_priority()
 { 
