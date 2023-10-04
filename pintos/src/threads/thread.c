@@ -417,7 +417,8 @@ thread_get_recent_cpu (void)
   return 0;
 }
 
-/* compare awake Ticks between two threads and return true if awake ticks of first threads is bigger than second */bool 
+/* compare awake Ticks between two threads and return true if awake ticks of first threads is smaller than second one */
+bool 
 thread_comp_awakeTicks (struct list_elem * In, struct list_elem * b, void *aux UNUSED)
 {
   bool val = list_entry(In, struct thread, elem)->awake_ticks < list_entry(b, struct thread, elem)->awake_ticks;
