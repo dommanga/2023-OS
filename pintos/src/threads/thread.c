@@ -267,9 +267,9 @@ thread_sleep (int64_t ticks)
 void 
 thread_wakeup (int64_t ticks)
 {
-  struct list_elem *el = list_begin(&sleep_list);
+  struct list_elem *el;
 
-  for (el; el != list_end(&sleep_list); el = list_next(el))
+  for(el = list_begin(&sleep_list); el != list_end(&sleep_list);)
   {
     struct thread *t = list_entry(el, struct thread, elem);
     if(t->awake_ticks <= ticks)
