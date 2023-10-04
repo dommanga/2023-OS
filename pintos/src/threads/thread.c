@@ -246,6 +246,7 @@ thread_unblock (struct thread *t)
   intr_set_level (old_level);
 }
 
+/* make thread to get sleep for time ticks. Insert thread in sleep_list by ascending order of awake ticks. */
 void
 thread_sleep (int64_t ticks)
 { 
@@ -256,12 +257,13 @@ thread_sleep (int64_t ticks)
   if (cur != idle_thread)
   {
     cur->awake_ticks = ticks;
-    list_insert_ordered(&sleep_list, &cur->elem, thread_comp_awakeTicks, NULL); //insert thread in sleep_list by ascending order of awake ticks
+    list_insert_ordered(&sleep_list, &cur->elem, thread_comp_awakeTicks, NULL);
     thread_block();
   }
   intr_set_level(old_level);
 }
 
+/* wake up thread after time ticks. We do not need to scan for all elements of sleep_lsit thanks to the ascending arragement of the list. */
 void 
 thread_wakeup (int64_t ticks)
 {
@@ -275,6 +277,8 @@ thread_wakeup (int64_t ticks)
       el = list_remove(el);
       thread_unblock(t);
     }
+    else
+      return;
   }
 }
 
