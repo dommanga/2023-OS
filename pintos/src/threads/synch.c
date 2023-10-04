@@ -296,10 +296,22 @@ cond_wait (struct condition *cond, struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
   
   sema_init (&waiter.semaphore, 0);
-  list_push_back (&cond->waiters, &waiter.elem);
+  list_insert_ordered(&cond->waiters, &waiter.elem, sema_comp_priority, NULL);
   lock_release (lock);
   sema_down (&waiter.semaphore);
   lock_acquire (lock);
+}
+
+bool
+sema_comp_priority(struct list_elem * In, struct list_elem * b, void *aux UNUSED)
+{
+  struct semaphore_elem *In_sema = list_entry(In, struct semaphore_elem, elem);
+  struct semaphore_elem *b_sema = list_entry(b, struct semaphore_elem, elem);
+  
+  struct list *waiters_In_sema = &(In_sema->semaphore.waiters);
+  struct list *waiters_b_sema = &(b_sema->semaphore.waiters);
+  
+  return thread_comp_priority(list_begin(waiters_In_sema), list_begin(waiters_b_sema), NULL);
 }
 
 /* If any threads are waiting on COND (protected by LOCK), then
