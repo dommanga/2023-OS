@@ -425,6 +425,15 @@ thread_comp_awakeTicks (struct list_elem * In, struct list_elem * b, void *aux U
 
   return val;
 }
+
+/* compare priority between two threads and return true if priority of first threads is bigger than second one */
+bool 
+thread_comp_priority (struct list_elem * In, struct list_elem * b, void *aux UNUSED)
+{
+  bool val = list_entry(In, struct thread, elem)->priority > list_entry(b, struct thread, elem)->priority;
+
+  return val;
+}
 
 /* Idle thread.  Executes when no other thread is ready to run.
 
