@@ -266,9 +266,7 @@ void
 thread_wakeup (int64_t ticks)
 {
   struct list_elem *el = list_begin(&sleep_list);
-  enum intr_level old_level;
 
-  old_level = intr_disable();
   for (el; el != list_end(&sleep_list); el = list_next(el))
   {
     struct thread *t = list_entry(el, struct thread, elem);
@@ -278,7 +276,6 @@ thread_wakeup (int64_t ticks)
       thread_unblock(t);
     }
   }
-  intr_set_level(old_level);
 }
 
 
