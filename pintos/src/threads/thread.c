@@ -434,6 +434,20 @@ thread_comp_priority (struct list_elem * In, struct list_elem * b, void *aux UNU
 
   return val;
 }
+
+bool 
+thread_cur_vs_ready_priority()
+{ 
+  if(!list_empty(&ready_list))
+  {
+  struct thread *t = list_entry(list_begin(&ready_list), struct thread, elem);
+
+  if (thread_current()->priority < t->priority)
+    thread_yield();
+  }
+}
+
+
 
 /* Idle thread.  Executes when no other thread is ready to run.
 

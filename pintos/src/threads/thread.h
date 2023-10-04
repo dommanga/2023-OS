@@ -146,4 +146,6 @@ int thread_get_load_avg (void);
 bool thread_comp_awakeTicks (struct list_elem * In, struct list_elem * b, void *aux UNUSED);
 bool thread_comp_priority (struct list_elem * In, struct list_elem * b, void *aux UNUSED);
 
+bool thread_cur_vs_ready_priority();
+
 #endif /* threads/thread.h */
