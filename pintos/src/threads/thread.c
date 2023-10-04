@@ -24,9 +24,6 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
-/*List of sleeping threads.*/
-static struct list sleep_list;
-
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
@@ -95,7 +92,6 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
-  list_init (&sleep_list);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -246,43 +242,6 @@ thread_unblock (struct thread *t)
   intr_set_level (old_level);
 }
 
-/* make thread to get sleep for time ticks. Insert thread in sleep_list by ascending order of awake ticks. */
-void
-thread_sleep (int64_t ticks)
-{ 
-  struct thread *cur = thread_current ();
-  enum intr_level old_level;
-
-  old_level = intr_disable();
-  if (cur != idle_thread)
-  {
-    cur->awake_ticks = ticks;
-    list_insert_ordered(&sleep_list, &cur->elem, thread_comp_awakeTicks, NULL);
-    thread_block();
-  }
-  intr_set_level(old_level);
-}
-
-/* wake up thread after time ticks. We do not need to scan for all elements of sleep_lsit thanks to the ascending arragement of the list. */
-void 
-thread_wakeup (int64_t ticks)
-{
-  struct list_elem *el;
-
-  for(el = list_begin(&sleep_list); el != list_end(&sleep_list);)
-  {
-    struct thread *t = list_entry(el, struct thread, elem);
-    if(t->awake_ticks <= ticks)
-    { 
-      el = list_remove(el);
-      thread_unblock(t);
-    }
-    else
-      return;
-  }
-}
-
-
 /* Returns the name of the running thread. */
 const char *
 thread_name (void) 
@@ -415,14 +374,6 @@ thread_get_recent_cpu (void)
 {
   /* Not yet implemented. */
   return 0;
-}
-
-/* compare awake Ticks between two threads and return true if awake ticks of first threads is bigger than second */bool 
-thread_comp_awakeTicks (struct list_elem * In, struct list_elem * b, void *aux UNUSED)
-{
-  bool val = list_entry(In, struct thread, elem)->awake_ticks < list_entry(b, struct thread, elem)->awake_ticks;
-
-  return val;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
