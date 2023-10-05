@@ -41,7 +41,7 @@ struct condition
 
 void cond_init (struct condition *);
 void cond_wait (struct condition *, struct lock *);
-bool sema_comp_priority(struct list_elem * In, struct list_elem * b, void *aux UNUSED);
+bool sema_comp_priority(struct list_elem * In, struct list_elem * b, void *aux);
 void cond_signal (struct condition *, struct lock *);
 void cond_broadcast (struct condition *, struct lock *);
 

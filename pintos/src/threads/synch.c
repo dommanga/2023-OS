@@ -370,7 +370,7 @@ cond_wait (struct condition *cond, struct lock *lock)
 }
 
 bool
-sema_comp_priority(struct list_elem * In, struct list_elem * b, void *aux UNUSED)
+sema_comp_priority(struct list_elem * In, struct list_elem * b, void *aux)
 {
   struct semaphore_elem *In_sema = list_entry(In, struct semaphore_elem, elem);
   struct semaphore_elem *b_sema = list_entry(b, struct semaphore_elem, elem);
