@@ -256,9 +256,7 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
-  //도네이션 리스트에서 얘가 가진 락을 기다리는 애들 삭제
   del_lock_donators(lock);
-  //도네이션 리스트의 제일 첫 스레드의 우선순위로 업뎃
   re_set_effective_priority();
 
   lock->holder = NULL;
