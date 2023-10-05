@@ -259,6 +259,7 @@ lock_release (struct lock *lock)
   //도네이션 리스트에서 얘가 가진 락을 기다리는 애들 삭제
   del_lock_donators(lock);
   //도네이션 리스트의 제일 첫 스레드의 우선순위로 업뎃
+  re_set_effective_priority();
 
   lock->holder = NULL;
   sema_up (&lock->semaphore);
@@ -281,6 +282,26 @@ del_lock_donators (struct lock *lock)
     }
     else
       e = list_next(e);
+  }
+}
+
+/* reset effective priority of current thread. */
+void
+re_set_effective_priority (void)
+{
+  struct thread *cur = thread_current();
+
+  cur->priority = cur->initial_priority;
+  
+  if (!list_empty(&cur->donation_list))
+  { 
+    list_sort(&cur->donation_list, thread_comp_dona_priority, NULL);
+
+    struct list_elem *e = list_begin(&cur->donation_list);
+    struct thread *first_t = list_entry(e, struct thread, dona_elem);
+
+    if (first_t->priority > cur->initial_priority)
+      cur->priority = first_t->priority;
   }
 }
 
