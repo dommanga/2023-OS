@@ -197,8 +197,32 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  struct thread *cur = thread_current();
+
+  if (lock->holder != NULL)
+  { 
+    cur->wait_lock = lock;
+    list_insert_ordered(&lock->holder->donation_list, &cur->dona_elem, thread_comp_dona_priority, NULL);
+    priority_donation();
+  }
+  
   sema_down (&lock->semaphore);
-  lock->holder = thread_current ();
+  cur->wait_lock = NULL;
+  lock->holder = cur;
+}
+
+/* donate priority to connected thread with lock. */
+void 
+priority_donation (void)
+{ 
+  struct thread *t = thread_current();
+  for(int i = 0; i < 8; i++)
+  { 
+    if (t->wait_lock == NULL)
+      break;
+    t->wait_lock->holder->priority = t->priority;
+    t = t->wait_lock->holder;
+  }
 }
 
 /* Tries to acquires LOCK and returns true if successful or false

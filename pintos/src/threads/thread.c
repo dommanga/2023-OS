@@ -437,6 +437,15 @@ thread_comp_priority (struct list_elem * In, struct list_elem * b, void *aux UNU
   return val;
 }
 
+/* compare priority function with dona_elem. */
+bool 
+thread_comp_dona_priority (struct list_elem * In, struct list_elem * b, void *aux UNUSED)
+{
+  bool val = list_entry(In, struct thread, dona_elem)->priority > list_entry(b, struct thread, dona_elem)->priority;
+
+  return val;
+}
+
 /* Compare priority of current thread vs first thread in ready_list. If priority of first thread is bigger than current thread's, then execute CPU yield.*/
 bool 
 thread_cur_vs_ready_priority()
