@@ -272,7 +272,7 @@ del_lock_donators (struct lock *lock)
   struct thread *holder = lock->holder;
   struct list_elem *e = list_begin(&holder->donation_list);
 
-  while (!list_end(&holder->donation_list))
+  while (e != list_end(&holder->donation_list))
   { 
     struct thread *t = list_entry(e, struct thread, dona_elem);
 
