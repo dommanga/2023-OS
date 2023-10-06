@@ -204,6 +204,7 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
+  thread_cur_vs_ready_priority();
 
   return tid;
 }
@@ -241,7 +242,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered(&ready_list, &t->elem, thread_comp_priority, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -349,7 +350,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered(&ready_list, &cur->elem, thread_comp_priority, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -375,8 +376,10 @@ thread_foreach (thread_action_func *func, void *aux)
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) 
-{
-  thread_current ()->priority = new_priority;
+{ 
+  thread_current ()->initial_priority = new_priority;
+  re_set_effective_priority();
+  thread_cur_vs_ready_priority();
 }
 
 /* Returns the current thread's priority. */
@@ -417,13 +420,47 @@ thread_get_recent_cpu (void)
   return 0;
 }
 
-/* compare awake Ticks between two threads and return true if awake ticks of first threads is bigger than second */bool 
+/* compare awake Ticks between two threads and return true if awake ticks of first threads is smaller than second one */
+bool 
 thread_comp_awakeTicks (struct list_elem * In, struct list_elem * b, void *aux UNUSED)
 {
   bool val = list_entry(In, struct thread, elem)->awake_ticks < list_entry(b, struct thread, elem)->awake_ticks;
 
   return val;
 }
+
+/* compare priority between two threads and return true if priority of first threads is bigger than second one */
+bool 
+thread_comp_priority (struct list_elem * In, struct list_elem * b, void *aux UNUSED)
+{
+  bool val = list_entry(In, struct thread, elem)->priority > list_entry(b, struct thread, elem)->priority;
+
+  return val;
+}
+
+/* compare priority function with dona_elem. */
+bool 
+thread_comp_dona_priority (struct list_elem * In, struct list_elem * b, void *aux UNUSED)
+{
+  bool val = list_entry(In, struct thread, dona_elem)->priority > list_entry(b, struct thread, dona_elem)->priority;
+
+  return val;
+}
+
+/* Compare priority of current thread vs first thread in ready_list. If priority of first thread is bigger than current thread's, then execute CPU yield.*/
+bool 
+thread_cur_vs_ready_priority()
+{ 
+  if(!list_empty(&ready_list))
+  {
+  struct thread *t = list_entry(list_begin(&ready_list), struct thread, elem);
+
+  if (thread_current()->priority < t->priority)
+    thread_yield();
+  }
+}
+
+
 
 /* Idle thread.  Executes when no other thread is ready to run.
 
@@ -510,8 +547,13 @@ init_thread (struct thread *t, const char *name, int priority)
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
+  t->initial_priority = priority;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+
+  list_init(&(t->donation_list));
+  t->wait_lock = NULL;
+
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
