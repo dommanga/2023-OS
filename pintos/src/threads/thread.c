@@ -411,7 +411,7 @@ void thread_calculate_load_avg (void){
 void thread_calculate_priority (struct thread *t){
   //priority = PRI_MAX - (recent_cpu / 4) - (nice * 2)
   if (t!=idle_thread){
-    t->priority=PRI_MAX-p_to_int_rd(fp_int_add(fp_int_div(t->recent_cpu,4), (t->nice)*2));
+    t->priority=PRI_MAX-fp_to_int_rd(fp_int_add(fp_int_div(t->recent_cpu,4), (t->nice)*2));
   }
 }
 
