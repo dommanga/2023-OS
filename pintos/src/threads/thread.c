@@ -382,6 +382,9 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 { 
+  if(thread_mlfqs==true){
+    return;
+  }
   thread_current ()->initial_priority = new_priority;
   re_set_effective_priority();
   thread_cur_vs_ready_priority();
