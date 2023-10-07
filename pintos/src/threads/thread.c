@@ -396,8 +396,16 @@ thread_get_priority (void)
 
 void thread_calculate_recent_cpu (struct thread *t){
   if (t!=idle_thread){
+    //recent_cpu =(2*load_avg)/(2*load_avg + 1) * recent_cpu + nice
     t->recent_cpu=fp_int_add(fp_mul(fp_div(fp_int_mul(load_avg,2),fp_int_add(fp_int_mul(load_avg,2),1)),t->recent_cpu),t->nice);
   }
+}
+
+void thread_calculate_load_avg (void){
+  //load_avg =(59/60)*load_avg + (1/60)*ready_threads
+  int ready_threads=(thread_current()==idle_thread)?list_size(&ready_list):list_size(&ready_list)+1;
+
+  load_avg=fp_add(fp_mul(fp_div(int_to_fp(59),int_to_fp(60)),load_avg), fp_int_mul(fp_div(int_to_fp(1),int_to_fp(60)),ready_threads));
 }
 
 /* Sets the current thread's nice value to NICE. */
