@@ -415,6 +415,14 @@ void thread_calculate_priority (struct thread *t){
   }
 }
 
+void thread_increment_recent_cpu(void){
+  if (thread_current()!=idle_thread){
+    //increment running thread's recent cpu
+    //recent_cpu = recent_cpu +1
+    thread_current()->recent_cpu=fp_int_add(thread_current()->recent_cpu,1);
+  }
+}
+
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice UNUSED) 
