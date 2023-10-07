@@ -408,6 +408,13 @@ void thread_calculate_load_avg (void){
   load_avg=fp_add(fp_mul(fp_div(int_to_fp(59),int_to_fp(60)),load_avg), fp_int_mul(fp_div(int_to_fp(1),int_to_fp(60)),ready_threads));
 }
 
+void thread_calculate_priority (struct thread *t){
+  //priority = PRI_MAX - (recent_cpu / 4) - (nice * 2)
+  if (t!=idle_thread){
+    t->priority=PRI_MAX-p_to_int_rd(fp_int_add(fp_int_div(t->recent_cpu,4), (t->nice)*2));
+  }
+}
+
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice UNUSED) 
