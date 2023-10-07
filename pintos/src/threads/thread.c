@@ -469,9 +469,14 @@ thread_get_nice (void)
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
-{
-  /* Not yet implemented. */
-  return 0;
+{  
+  enum intr_level old_level;
+  old_level = intr_disable ();
+
+  int load_avg_100=fp_to_int_rn(fp_int_mul(load_avg,100));
+
+  intr_set_level (old_level);
+  return load_avg_100;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
