@@ -87,8 +87,20 @@ struct thread
     enum thread_status status;          /* Thread state. */
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
+    int initial_priority;                  /* initial priority */
     int priority;                       /* Priority. */
+
+    int nice;
+    int recent_cpu;
+    
+    struct list donation_list;          /* list of donators */
+    struct list_elem dona_elem;         /* List element. */
+
+    struct lock *wait_lock;             /* store lock that this thread is waiting */
+
     struct list_elem allelem;           /* List element for all threads list. */
+
+   int64_t awake_ticks;                   /* ticks for wake up */
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
@@ -119,6 +131,9 @@ tid_t thread_create (const char *name, int priority, thread_func *, void *);
 void thread_block (void);
 void thread_unblock (struct thread *);
 
+void thread_sleep (int64_t ticks);
+void thread_wakeup (int64_t ticks);
+
 struct thread *thread_current (void);
 tid_t thread_tid (void);
 const char *thread_name (void);
@@ -137,5 +152,11 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+bool thread_comp_awakeTicks (struct list_elem * In, struct list_elem * b, void *aux UNUSED);
+bool thread_comp_priority (struct list_elem * In, struct list_elem * b, void *aux UNUSED);
+bool thread_comp_dona_priority (struct list_elem * In, struct list_elem * b, void *aux UNUSED);
+
+void thread_cur_vs_ready_priority();
 
 #endif /* threads/thread.h */

@@ -26,8 +26,11 @@ struct lock
 
 void lock_init (struct lock *);
 void lock_acquire (struct lock *);
+void priority_donation (void);
 bool lock_try_acquire (struct lock *);
 void lock_release (struct lock *);
+void del_lock_donators (struct lock *lock);
+void re_set_effective_priority (void);
 bool lock_held_by_current_thread (const struct lock *);
 
 /* Condition variable. */
@@ -38,6 +41,7 @@ struct condition
 
 void cond_init (struct condition *);
 void cond_wait (struct condition *, struct lock *);
+bool sema_comp_priority(struct list_elem * In, struct list_elem * b, void *aux);
 void cond_signal (struct condition *, struct lock *);
 void cond_broadcast (struct condition *, struct lock *);
 
