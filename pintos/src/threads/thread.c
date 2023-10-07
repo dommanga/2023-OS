@@ -62,6 +62,8 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
 
+int load_avg;
+
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
@@ -113,6 +115,8 @@ thread_start (void)
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
   thread_create ("idle", PRI_MIN, idle, &idle_started);
+
+  load_avg=0;
 
   /* Start preemptive thread scheduling. */
   intr_enable ();
@@ -393,7 +397,12 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice UNUSED) 
 {
-  /* Not yet implemented. */
+    enum intr_level old_level;
+    old_level = intr_disable ();
+
+    thread_current()->nice=nice;
+
+    intr_set_level (old_level);
 }
 
 /* Returns the current thread's nice value. */
@@ -550,6 +559,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->initial_priority = priority;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+
+  t->nice=0;
+  t->recent_cpu=0;
 
   list_init(&(t->donation_list));
   t->wait_lock = NULL;

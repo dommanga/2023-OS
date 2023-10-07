@@ -89,6 +89,9 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int initial_priority;                  /* initial priority */
     int priority;                       /* Priority. */
+
+    int nice;
+    int recent_cpu;
     
     struct list donation_list;          /* list of donators */
     struct list_elem dona_elem;         /* List element. */
