@@ -423,6 +423,15 @@ void thread_increment_recent_cpu(void){
   }
 }
 
+void thread_update_recent_cpu(void){
+  struct list_elem *e;
+
+  for (e = list_begin (&all_list); e != list_end (&all_list); e = list_next (e)) {
+    struct thread *t = list_entry (e, struct thread, allelem);
+    thread_calculate_recent_cpu (t);
+  }
+}
+
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice UNUSED) 
