@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "threads/fixed_point_operator.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -391,6 +392,12 @@ int
 thread_get_priority (void) 
 {
   return thread_current ()->priority;
+}
+
+void thread_calculate_recent_cpu (struct thread *t){
+  if (t!=idle_thread){
+    t->recent_cpu=fp_int_add(fp_mul(fp_div(fp_int_mul(load_avg,2),fp_int_add(fp_int_mul(load_avg,2),1)),t->recent_cpu),t->nice);
+  }
 }
 
 /* Sets the current thread's nice value to NICE. */
