@@ -482,9 +482,14 @@ thread_get_load_avg (void)
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
-{
-  /* Not yet implemented. */
-  return 0;
+{  
+  enum intr_level old_level;
+  old_level = intr_disable ();
+
+  int recent_cpu_100=fp_to_int_rn(fp_int_mul(thread_current()->recent_cpu,100));
+
+  intr_set_level (old_level);
+  return recent_cpu_100;
 }
 
 /* compare awake Ticks between two threads and return true if awake ticks of first threads is smaller than second one */
