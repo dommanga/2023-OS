@@ -519,7 +519,7 @@ thread_comp_dona_priority (struct list_elem * In, struct list_elem * b, void *au
 }
 
 /* Compare priority of current thread vs first thread in ready_list. If priority of first thread is bigger than current thread's, then execute CPU yield.*/
-bool 
+void
 thread_cur_vs_ready_priority()
 { 
   if(!list_empty(&ready_list))
