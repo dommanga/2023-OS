@@ -397,25 +397,11 @@ thread_get_priority (void)
   return thread_current ()->priority;
 }
 
-void thread_calculate_recent_cpu (struct thread *t){
-  if (t!=idle_thread){
-    //recent_cpu =(2*load_avg)/(2*load_avg + 1) * recent_cpu + nice
-    t->recent_cpu=fp_int_add(fp_mul(fp_div(fp_int_mul(load_avg,2),fp_int_add(fp_int_mul(load_avg,2),1)),t->recent_cpu),t->nice);
-  }
-}
-
-void thread_calculate_load_avg (void){
+void thread_update_load_avg (void){
   //load_avg =(59/60)*load_avg + (1/60)*ready_threads
   int ready_threads=(thread_current()==idle_thread)?list_size(&ready_list):list_size(&ready_list)+1;
 
   load_avg=fp_add(fp_mul(fp_div(int_to_fp(59),int_to_fp(60)),load_avg), fp_int_mul(fp_div(int_to_fp(1),int_to_fp(60)),ready_threads));
-}
-
-void thread_calculate_priority (struct thread *t){
-  //priority = PRI_MAX - (recent_cpu / 4) - (nice * 2)
-  if (t!=idle_thread){
-    t->priority=PRI_MAX-fp_to_int_rd(fp_int_add(fp_int_div(t->recent_cpu,4), (t->nice)*2));
-  }
 }
 
 void thread_increment_recent_cpu(void){
@@ -431,7 +417,10 @@ void thread_update_recent_cpu(void){
 
   for (e = list_begin (&all_list); e != list_end (&all_list); e = list_next (e)) {
     struct thread *t = list_entry (e, struct thread, allelem);
-    thread_calculate_recent_cpu (t);
+    if (t!=idle_thread){
+      //recent_cpu =(2*load_avg)/(2*load_avg + 1) * recent_cpu + nice
+      t->recent_cpu=fp_int_add(fp_mul(fp_div(fp_int_mul(load_avg,2),fp_int_add(fp_int_mul(load_avg,2),1)),t->recent_cpu),t->nice);
+    }
   }
 }
 
@@ -440,7 +429,10 @@ void thread_update_priority(void){
 
   for (e = list_begin (&all_list); e != list_end (&all_list); e = list_next (e)) {
     struct thread *t = list_entry (e, struct thread, allelem);
-    thread_calculate_priority (t);
+    if (t!=idle_thread){
+      //priority = PRI_MAX - (recent_cpu / 4) - (nice * 2)
+      t->priority=fp_to_int_rd(fp_int_add(fp_int_div(t->recent_cpu,-4),PRI_MAX-((t->nice)*2)));
+    }
   }
 }
 
@@ -453,6 +445,10 @@ thread_set_nice (int nice UNUSED)
 
   thread_current()->nice=nice;
 
+  struct thread *t=thread_current();
+  t->priority=fp_to_int_rd(fp_int_add(fp_int_div(t->recent_cpu,-4),PRI_MAX-((t->nice)*2)));
+
+  thread_cur_vs_ready_priority();
   intr_set_level (old_level);
 }
 

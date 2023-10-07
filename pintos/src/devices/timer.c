@@ -179,7 +179,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
     if(ticks%4==0){
       thread_update_priority();
       if(ticks%TIMER_FREQ==0){
-        thread_calculate_load_avg();
+        thread_update_load_avg();
         thread_update_recent_cpu();
       }
     }
