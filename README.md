@@ -1,19 +1,28 @@
-Hello from jimin, test for slack connection.
+# Pintos
 
-Revised)) to sure connection with slack.
+Pintos, a simple operating system framework for the 80x86 architecture created at Stanford University
 
-Revised)) create branch "alarm-clock" to implement project 1-1. alarm clock. 
 
-    currently developed implementation
-        structure
-            - sleep_list
-            - awake_ticks
-        function
-            - timer_sleep (modified)
-            - tread_comp_awakeTicks
-            - thread_sleep
+## Prerequisites
 
-    To do
-        function
-            - wake_up <- find wake up thread and awake
-            - timer_interrupt (modify)
+```sh
+$ sudo apt-get update
+$ sudo apt-get install binutils pkg-config zlib1g-dev libglib2.0-dev gcc libc6-dev autoconf libtool libsdl1.2-dev g++ libx11-dev libxrandr-dev libxi-dev perl libc6-dbg gdb make git qemu ctags
+```
+
+## git clone
+
+```sh
+$ cd ~/
+$ git clone git@github.com:Dong-Hyeon-Yu/CSED312-pintos.git pintos
+```
+
+
+## Enviroment variable
+
+```sh
+# add the command in .bashrc (or .zshrc)
+export PATH=$HOME/pintos/src/utils:$PATH
+```
+
+
