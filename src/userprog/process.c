@@ -18,6 +18,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+void parsing_arg (char *arguments, char **result);
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -74,6 +75,24 @@ start_process (void *file_name_)
      and jump to it. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
+}
+
+//parsing argument into result string array.
+void parsing_arg (char *arguments, char **result)
+{
+  char *token;
+  char *next_ptr;
+
+  int i = 0;
+  token = strtok_r(arguments, " ", &next_ptr);
+  result[i] = token;
+  
+  while (token)
+  { 
+    token = strtok_r(NULL, " ", &next_ptr);
+    i++;
+    result[i] = token;
+  }
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
