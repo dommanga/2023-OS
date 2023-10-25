@@ -18,7 +18,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
-void parsing_arg (char *arguments, char **result);
+int parsing_arg (char *arguments, char **result);
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -60,8 +60,8 @@ start_process (void *file_name_)
   bool success;
 
   char *arg_result[128];
-  parsing_arg (file_name, arg_result);
-
+  int arg_num = parsing_arg (file_name, arg_result);
+  
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
@@ -85,7 +85,8 @@ start_process (void *file_name_)
 }
 
 //parsing argument into result string array.
-void parsing_arg (char *arguments, char **result)
+int 
+parsing_arg (char *arguments, char **result)
 {
   char *token;
   char *next_ptr;
@@ -100,6 +101,8 @@ void parsing_arg (char *arguments, char **result)
     i++;
     result[i] = token;
   }
+  
+  return i-1;
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
