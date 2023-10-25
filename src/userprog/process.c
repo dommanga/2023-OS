@@ -39,8 +39,12 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  char *next_ptr;
+  char *file_title;
+  file_title = strtok_r(file_name, " ", &next_ptr); //now file_name is only "name" for the file
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (file_title, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -106,7 +110,9 @@ void parsing_arg (char *arguments, char **result)
    does nothing. */
 int
 process_wait (tid_t child_tid UNUSED) 
-{
+{ 
+  int i;
+  for( i = 0; i < 1000000000; i++);
   return -1;
 }
 
