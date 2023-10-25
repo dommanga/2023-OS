@@ -19,6 +19,7 @@
 #include "threads/vaddr.h"
 
 int parsing_arg (char *arguments, char **result);
+void stack_argument (char **parse, int count, void **esp);
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -61,13 +62,15 @@ start_process (void *file_name_)
 
   char *arg_result[128];
   int arg_num = parsing_arg (file_name, arg_result);
-  
+
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (arg_result[0], &if_.eip, &if_.esp);
+
+  stack_argument (arg_result, arg_num, &if_.esp);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -102,7 +105,59 @@ parsing_arg (char *arguments, char **result)
     result[i] = token;
   }
   
-  return i-1;
+  return i;
+}
+
+void
+stack_argument (char **parse, int count, void **esp)
+{ 
+  int length_all = 0;
+  char *address[128];
+
+  //push arguments into stack
+  int i, j;
+  for (i = count - 1; i > -1; i--)
+  { 
+    int single_length = strlen(parse[i]) + 1;
+    *esp = *esp - single_length;
+    length_all += single_length;
+    memcpy(esp, parse[i], single_length);
+    address[i] = *esp;
+  }
+
+  //word-align
+  while ((length_all % 4) != 0)
+  { 
+    *esp--;
+    *(uint8_t*)esp = 0;
+  }
+
+  //push address
+  for (i = count; i > -1; i--)
+  { 
+    *esp = *esp - 4;
+    if (i == count)
+    {
+      memset(esp, 0, sizeof(char**));
+    }
+    else
+    {
+      memcpy(esp, &address[i], sizeof(char**));
+    }
+  }
+
+  //push argv address
+  *esp = *esp - 4;
+  **(char **)esp = *esp + 4;
+
+  //push argc
+  *esp = *esp - 4;
+  **(char **)esp = count;
+
+  //push return address
+  *esp = *esp - 4;
+  **(char **)esp = 0;
+
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
