@@ -72,8 +72,6 @@ start_process (void *file_name_)
 
   stack_argument (arg_result, arg_num, &if_.esp);
 
-  hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
-
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
