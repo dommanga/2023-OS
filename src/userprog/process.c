@@ -72,6 +72,8 @@ start_process (void *file_name_)
 
   stack_argument (arg_result, arg_num, &if_.esp);
 
+  hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
+
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
@@ -119,44 +121,45 @@ stack_argument (char **parse, int count, void **esp)
   for (i = count - 1; i > -1; i--)
   { 
     int single_length = strlen(parse[i]) + 1;
-    *esp = *esp - single_length;
+    *esp -= single_length;
     length_all += single_length;
-    memcpy(esp, parse[i], single_length);
+    memcpy(*esp, parse[i], single_length);
     address[i] = *esp;
   }
-
+  
   //word-align
   while ((length_all % 4) != 0)
   { 
-    *esp--;
-    *(uint8_t*)esp = 0;
+    *esp -= 1;
+    memset(*esp, 0, sizeof(uint8_t));
+    length_all++;
   }
 
   //push address
   for (i = count; i > -1; i--)
   { 
-    *esp = *esp - 4;
+    *esp -= 4;
     if (i == count)
     {
-      memset(esp, 0, sizeof(char**));
+      memset(*esp, 0, sizeof(char**));
     }
     else
     {
-      memcpy(esp, &address[i], sizeof(char**));
+      memcpy(*esp, &address[i], sizeof(char**));
     }
   }
 
   //push argv address
-  *esp = *esp - 4;
-  **(char **)esp = *esp + 4;
+  *esp -= 4;
+  **(uint32_t **)esp = *esp + 4;
 
   //push argc
-  *esp = *esp - 4;
-  **(char **)esp = count;
+  *esp -= 4;
+  **(uint32_t **)esp = count;
 
   //push return address
-  *esp = *esp - 4;
-  **(char **)esp = 0;
+  *esp -= 4;
+  **(uint32_t **)esp = 0;
 
 }
 
