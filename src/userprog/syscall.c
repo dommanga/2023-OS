@@ -133,8 +133,28 @@ void exit (int status)
 }
 
 pid_t exec (const char *cmd_line)
-{
+{ 
+  tid_t child_tid = process_execute(cmd_line);
+  
+  struct thread *cur = thread_current();
+  struct list_elem *e;
 
+  if (!list_empty(&cur->child_list))
+  {
+    for (e = list_begin(&cur->child_list); e != list_end(&cur->child_list); e = list_next(e))
+    {
+      struct thread *t = list_entry(e, struct thread, child_elem);
+      if (t->tid == child_tid)
+      {
+        sema_down(&t->loaded);
+        if (t->load_success) //load success!
+          return child_tid;
+        else
+          return -1;
+      }
+    }
+  }
+  return -1;
 }
 
 int wait (pid_t pid)
