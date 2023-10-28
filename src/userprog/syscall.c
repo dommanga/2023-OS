@@ -91,6 +91,7 @@ void exit (int status)
 
 pid_t exec (const char *cmd_line)
 {
+  check_validation(cmd_line);
 
 }
 
@@ -101,17 +102,17 @@ int wait (pid_t pid)
 
 bool create (const char *file, unsigned initial_size)
 {
-
+  check_validation(file);
 }
 
 bool remove (const char *file)
 {
-
+  check_validation(file);
 }
 
 int open (const char *file)
 {
-
+  check_validation(file);
 }
 
 int filesize (int fd)
@@ -121,12 +122,12 @@ int filesize (int fd)
 
 int read (int fd, void *buffer, unsigned size)
 {
-
+  check_validation(buffer);
 }
 
 int write (int fd, const void *buffer, unsigned size)
 {
-
+  check_validation(buffer);
 }
 
 void seek (int fd, unsigned position)
