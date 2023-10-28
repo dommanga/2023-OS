@@ -18,6 +18,8 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+int parsing_arg (char *arguments, char **result);
+void stack_argument (char **parse, int count, void **esp);
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -38,8 +40,12 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  char *next_ptr;
+  char *file_title;
+  file_title = strtok_r(file_name, " ", &next_ptr); //now file_name is only "name" for the file
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (file_title, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -54,12 +60,17 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
+  char *arg_result[128];
+  int arg_num = parsing_arg (file_name, arg_result);
+
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load (arg_result[0], &if_.eip, &if_.esp);
+
+  stack_argument (arg_result, arg_num, &if_.esp);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -76,6 +87,80 @@ start_process (void *file_name_)
   NOT_REACHED ();
 }
 
+//parsing argument into result string array.
+int 
+parsing_arg (char *arguments, char **result)
+{
+  char *token;
+  char *next_ptr;
+
+  int i = 0;
+  token = strtok_r(arguments, " ", &next_ptr);
+  result[i] = token;
+  
+  while (token)
+  { 
+    token = strtok_r(NULL, " ", &next_ptr);
+    i++;
+    result[i] = token;
+  }
+  
+  return i;
+}
+
+void
+stack_argument (char **parse, int count, void **esp)
+{ 
+  int length_all = 0;
+  char *address[128];
+
+  //push arguments into stack
+  int i, j;
+  for (i = count - 1; i > -1; i--)
+  { 
+    int single_length = strlen(parse[i]) + 1;
+    *esp -= single_length;
+    length_all += single_length;
+    memcpy(*esp, parse[i], single_length);
+    address[i] = *esp;
+  }
+  
+  //word-align
+  while ((length_all % 4) != 0)
+  { 
+    *esp -= 1;
+    memset(*esp, 0, sizeof(uint8_t));
+    length_all++;
+  }
+
+  //push address
+  for (i = count; i > -1; i--)
+  { 
+    *esp -= 4;
+    if (i == count)
+    {
+      memset(*esp, 0, sizeof(char**));
+    }
+    else
+    {
+      memcpy(*esp, &address[i], sizeof(char**));
+    }
+  }
+
+  //push argv address
+  *esp -= 4;
+  **(uint32_t **)esp = *esp + 4;
+
+  //push argc
+  *esp -= 4;
+  **(uint32_t **)esp = count;
+
+  //push return address
+  *esp -= 4;
+  **(uint32_t **)esp = 0;
+
+}
+
 /* Waits for thread TID to die and returns its exit status.  If
    it was terminated by the kernel (i.e. killed due to an
    exception), returns -1.  If TID is invalid or if it was not a
@@ -87,7 +172,9 @@ start_process (void *file_name_)
    does nothing. */
 int
 process_wait (tid_t child_tid UNUSED) 
-{
+{ 
+  int i;
+  for( i = 0; i < 1000000000; i++);
   return -1;
 }
 
