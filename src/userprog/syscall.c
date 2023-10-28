@@ -71,7 +71,9 @@ void halt (void)
 
 void exit (int status)
 {
-
+  thread_current()->exit_status = status;
+  printf("%s: exit(%d)\n", thread_name(), status);
+  thread_exit();
 }
 
 pid_t exec (const char *cmd_line)
