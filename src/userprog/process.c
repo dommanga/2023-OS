@@ -127,7 +127,7 @@ stack_argument (char **parse, int count, void **esp)
   char *address[128];
 
   //push arguments into stack
-  int i, j;
+  int i;
   for (i = count - 1; i > -1; i--)
   { 
     int single_length = strlen(parse[i]) + 1;
