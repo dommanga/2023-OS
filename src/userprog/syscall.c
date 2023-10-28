@@ -165,6 +165,15 @@ int read (int fd, void *buffer, unsigned size)
 int write (int fd, const void *buffer, unsigned size)
 {
   check_validation((void *)buffer);
+
+  int ret = -1;
+
+  if (fd == 1)
+  {
+    putbuf(buffer, size);
+    ret = size;
+  }
+  return ret;
 }
 
 void seek (int fd, unsigned position)
