@@ -73,7 +73,7 @@ start_process (void *file_name_)
   stack_argument (arg_result, arg_num, &if_.esp);
 
   sema_up(&thread_current()->loaded);
-  thread_current()->load_success = true;
+  thread_current()->load_success = success;
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -176,26 +176,19 @@ stack_argument (char **parse, int count, void **esp)
 int
 process_wait (tid_t child_tid UNUSED) 
 { 
-  struct thread *cur = thread_current();
-  struct list_elem *e;
   int child_exit_status;
 
-  if (!list_empty(&cur->child_list))
+  struct thread *t = thread_get_child(child_tid);
+
+  if (t != NULL) // exist child thread matching child_tid
   {
-    for (e = list_begin(&cur->child_list); e != list_end(&cur->child_list); e = list_next(e))
-    {
-      struct thread *t = list_entry(e, struct thread, child_elem);
-      if (t->tid == child_tid)
-      {
-        sema_down(&t->t_exit);
-        child_exit_status = t->exit_status;
-        list_remove(&t->child_elem);
-        sema_up(&t->parent_take);
-        return child_exit_status;
-      }
-    }
+    sema_down(&t->t_exit);
+    child_exit_status = t->exit_status;
+    list_remove(&t->child_elem);
+    sema_up(&t->parent_take);
+    return child_exit_status;
   }
-  
+
   return -1;
 }
 

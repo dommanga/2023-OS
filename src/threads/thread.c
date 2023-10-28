@@ -275,6 +275,27 @@ thread_tid (void)
   return thread_current ()->tid;
 }
 
+//return child thread pointer, if non-exist in child_list matching tid, then return NULL
+struct thread *
+thread_get_child (tid_t child_tid)
+{ 
+  struct thread *cur = thread_current();
+  struct list_elem *e;
+
+  if (!list_empty(&cur->child_list))
+  {
+    for (e = list_begin(&cur->child_list); e != list_end(&cur->child_list); e = list_next(e))
+    {
+      struct thread *t = list_entry(e, struct thread, child_elem);
+      if (t->tid == child_tid)
+      {
+        return t;
+      }
+    }
+  }
+  return NULL;
+}
+
 /* Deschedules the current thread and destroys it.  Never
    returns to the caller. */
 void

@@ -136,24 +136,15 @@ pid_t exec (const char *cmd_line)
 { 
   tid_t child_tid = process_execute(cmd_line);
   
-  struct thread *cur = thread_current();
-  struct list_elem *e;
+  struct thread *t = thread_get_child(child_tid);
 
-  if (!list_empty(&cur->child_list))
+  if (t != NULL) // exist child thread matching child_tid
   {
-    for (e = list_begin(&cur->child_list); e != list_end(&cur->child_list); e = list_next(e))
-    {
-      struct thread *t = list_entry(e, struct thread, child_elem);
-      if (t->tid == child_tid)
-      {
-        sema_down(&t->loaded);
-        if (t->load_success) //load success!
-          return child_tid;
-        else
-          return -1;
-      }
-    }
+    sema_down(&t->loaded);
+    if (t->load_success) //load success!
+      return child_tid;
   }
+
   return -1;
 }
 
