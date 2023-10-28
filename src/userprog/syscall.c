@@ -35,6 +35,7 @@ syscall_handler (struct intr_frame *f UNUSED)
  switch (syscall_num)
  {
   case SYS_HALT:
+    halt();
     break;
   case SYS_EXIT:
     break;
@@ -65,7 +66,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 
 void halt (void)
 {
-
+  shutdown_power_off();
 }
 
 void exit (int status)
