@@ -34,7 +34,8 @@ syscall_init (void)
 
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
-{
+{ 
+  check_validation(f->esp);
   int syscall_num = *(uint32_t *)f->esp;
   int arg[5];
 
@@ -111,12 +112,8 @@ void get_arg (void *esp, int *arg, int count)
 void check_validation (void *p)
 { 
   struct thread *t = thread_current();
-  bool success = false;
 
-  if (p != NULL && is_user_vaddr(p) && pagedir_get_page(t->pagedir, p) != NULL)
-    success = true;
-
-  if (!success)
+  if (p == NULL || is_kernel_vaddr(p) || pagedir_get_page(t->pagedir, p) == NULL)
     exit(-1);
 }
 
