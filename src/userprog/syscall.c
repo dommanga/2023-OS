@@ -4,6 +4,9 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "lib/user/syscall.h"
+#include "threads/vaddr.h"
+#include "userprog/pagedir.h"
+#include "devices/shutdown.h"
 
 static void syscall_handler (struct intr_frame *);
 void get_arg (void *esp, int *arg, int count);
@@ -117,7 +120,7 @@ void halt (void)
 }
 
 void exit (int status)
-{
+{ 
   thread_current()->exit_status = status;
   printf("%s: exit(%d)\n", thread_name(), status);
   thread_exit();
