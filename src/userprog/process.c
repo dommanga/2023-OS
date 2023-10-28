@@ -82,10 +82,12 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (arg_result[0], &if_.eip, &if_.esp);
 
-  stack_argument (arg_result, arg_num, &if_.esp);
+  if (success)
+    stack_argument (arg_result, arg_num, &if_.esp);
 
-  sema_up(&thread_current()->loaded);
   thread_current()->load_success = success;
+  sema_up(&thread_current()->loaded);
+  
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
