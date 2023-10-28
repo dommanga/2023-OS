@@ -6,6 +6,7 @@
 #include "lib/user/syscall.h"
 
 static void syscall_handler (struct intr_frame *);
+void check_validation (void *p);
 void halt (void);
 void exit (int status);
 pid_t exec (const char *cmd_line);
@@ -62,6 +63,18 @@ syscall_handler (struct intr_frame *f UNUSED)
   case SYS_CLOSE:
     break;
  } 
+}
+
+void check_validation (void *p)
+{ 
+  struct thread *t = thread_current();
+  bool success = false;
+
+  if (p != NULL && pagedir_get_page(t->pagedir, p) != NULL && !is_kernel_vaddr(p))
+    success = true;
+
+  if (!success)
+    exit(-1);
 }
 
 void halt (void)
