@@ -101,14 +101,17 @@ syscall_handler (struct intr_frame *f UNUSED)
  } 
 }
 
+//get argument data from user stack to kernel.
 void get_arg (void *esp, int *arg, int count)
 {
   for (int i = 0; i < count; i++)
-  {
+  { 
+    check_validation(esp + 4 * (i + 1)); //address of esp itself must be valid.
     arg[i] = *(uint32_t *)(esp + 4 * (i + 1));
   }
 }
 
+//check validation of pointer.
 void check_validation (void *p)
 { 
   struct thread *t = thread_current();
