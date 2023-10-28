@@ -139,7 +139,7 @@ pid_t exec (const char *cmd_line)
 
 int wait (pid_t pid)
 {
-
+  return process_wait(pid);
 }
 
 bool create (const char *file, unsigned initial_size)

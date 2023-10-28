@@ -173,8 +173,26 @@ stack_argument (char **parse, int count, void **esp)
 int
 process_wait (tid_t child_tid UNUSED) 
 { 
-  int i;
-  for( i = 0; i < 1000000000; i++);
+  struct thread *cur = thread_current();
+  struct list_elem *e;
+  int child_exit_status;
+
+  if (!list_empty(&cur->child_list))
+  {
+    for (e = list_begin(&cur->child_list); e != list_end(&cur->child_list); e = list_next(e))
+    {
+      struct thread *t = list_entry(e, struct thread, child_elem);
+      if (t->tid == child_tid)
+      {
+        sema_down(&t->t_exit);
+        child_exit_status = t->exit_status;
+        list_remove(&t->child_elem);
+        sema_up(&t->parent_take);
+        return child_exit_status;
+      }
+    }
+  }
+  
   return -1;
 }
 
@@ -201,6 +219,8 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+    sema_up(&cur->t_exit);
+    sema_down(&cur->parent_take);
 }
 
 /* Sets up the CPU for running user code in the current
