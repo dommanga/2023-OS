@@ -8,6 +8,9 @@
 #include "userprog/pagedir.h"
 #include "devices/shutdown.h"
 
+//synchronization of file system
+static struct lock file_sys;
+
 static void syscall_handler (struct intr_frame *);
 void get_arg (void *esp, int *arg, int count);
 void check_validation (void *p);
@@ -30,6 +33,7 @@ void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init(&file_sys); // init lock of file system
 }
 
 static void

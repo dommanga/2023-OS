@@ -492,6 +492,8 @@ init_thread (struct thread *t, const char *name, int priority)
     sema_init(&t->loaded, 0);
     t->load_success = false;
     list_push_back(&running_thread()->child_list, &t->child_elem);
+    for (int i = 0; i < 128; i++)
+      t->fdt[i] = NULL;
   #endif
 
   t->magic = THREAD_MAGIC;

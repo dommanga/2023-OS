@@ -105,6 +105,9 @@ struct thread
     struct semaphore parent_take;
     struct semaphore loaded;
     bool load_success;
+    
+    struct file *fdt[128];
+    int fd_idx;
 #endif
 
     /* Owned by thread.c. */
