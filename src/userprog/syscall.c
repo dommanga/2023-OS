@@ -6,6 +6,7 @@
 #include "lib/user/syscall.h"
 
 static void syscall_handler (struct intr_frame *);
+void get_arg (void *esp, int *arg, int count);
 void check_validation (void *p);
 void halt (void);
 void exit (int status);
@@ -32,6 +33,7 @@ static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
   int syscall_num = *(uint32_t *)f->esp;
+  int arg[5];
 
  switch (syscall_num)
  {
@@ -39,30 +41,62 @@ syscall_handler (struct intr_frame *f UNUSED)
     halt();
     break;
   case SYS_EXIT:
+    get_arg(f->esp, arg, 1);
+    exit((int)arg[0]);
     break;
   case SYS_EXEC:
+    get_arg(f->esp, arg, 1);
+    exec((const char *)arg[0]);
     break;
   case SYS_WAIT:
+    get_arg(f->esp, arg, 1);
+    wait((pid_t)arg[0]);
     break;
   case SYS_CREATE:
+    get_arg(f->esp, arg, 2);
+    create((const char *)arg[0], (unsigned int)arg[1]);
     break;
   case SYS_REMOVE:
+    get_arg(f->esp, arg, 1);
+    remove((const char *)arg[0]);
     break;
   case SYS_OPEN:
+    get_arg(f->esp, arg, 1);
+    open((const char *)arg[0]);
     break;
   case SYS_FILESIZE:
+    get_arg(f->esp, arg, 1);
+    filesize((int)arg[0]);
     break;
   case SYS_READ:
+    get_arg(f->esp, arg, 3);
+    read((int)arg[0], (void *)arg[1], (unsigned int)arg[2]);
     break;
   case SYS_WRITE:
+    get_arg(f->esp, arg, 3);
+    write((int)arg[0], (const void *)arg[1], (unsigned int)arg[2]);
     break;
   case SYS_SEEK:
+    get_arg(f->esp, arg, 2);
+    seek((int)arg[0], (unsigned int)arg[1]);
     break;
   case SYS_TELL:
+    get_arg(f->esp, arg, 1);
+    tell((int)arg[0]);
     break;
   case SYS_CLOSE:
+    get_arg(f->esp, arg, 1);
+    close((int)arg[0]);
     break;
  } 
+}
+
+void get_arg (void *esp, int *arg, int count)
+{
+  for (int i = 0; i < count; i++)
+  {
+    arg[i] = *(uint32_t *)(esp + 4 * (i + 1));
+  }
 }
 
 void check_validation (void *p)
@@ -91,7 +125,7 @@ void exit (int status)
 
 pid_t exec (const char *cmd_line)
 {
-  check_validation(cmd_line);
+  check_validation((void *)cmd_line);
 
 }
 
@@ -102,17 +136,17 @@ int wait (pid_t pid)
 
 bool create (const char *file, unsigned initial_size)
 {
-  check_validation(file);
+  check_validation((void *)file);
 }
 
 bool remove (const char *file)
 {
-  check_validation(file);
+  check_validation((void *)file);
 }
 
 int open (const char *file)
 {
-  check_validation(file);
+  check_validation((void *)file);
 }
 
 int filesize (int fd)
@@ -127,7 +161,7 @@ int read (int fd, void *buffer, unsigned size)
 
 int write (int fd, const void *buffer, unsigned size)
 {
-  check_validation(buffer);
+  check_validation((void *)buffer);
 }
 
 void seek (int fd, unsigned position)
