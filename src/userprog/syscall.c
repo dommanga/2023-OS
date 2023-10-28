@@ -51,40 +51,40 @@ syscall_handler (struct intr_frame *f UNUSED)
   case SYS_EXEC:
     get_arg(f->esp, arg, 1);
     check_validation((void *)arg[0]);
-    exec((const char *)arg[0]);
+    f->eax = exec((const char *)arg[0]);
     break;
   case SYS_WAIT:
     get_arg(f->esp, arg, 1);
-    wait((pid_t)arg[0]);
+    f->eax = wait((pid_t)arg[0]);
     break;
   case SYS_CREATE:
     get_arg(f->esp, arg, 2);
     check_validation((void *)arg[0]);
-    create((const char *)arg[0], (unsigned int)arg[1]);
+    f->eax = create((const char *)arg[0], (unsigned int)arg[1]);
     break;
   case SYS_REMOVE:
     get_arg(f->esp, arg, 1);
     check_validation((void *)arg[0]);
-    remove((const char *)arg[0]);
+    f->eax = remove((const char *)arg[0]);
     break;
   case SYS_OPEN:
     get_arg(f->esp, arg, 1);
     check_validation((void *)arg[0]);
-    open((const char *)arg[0]);
+    f->eax = open((const char *)arg[0]);
     break;
   case SYS_FILESIZE:
     get_arg(f->esp, arg, 1);
-    filesize((int)arg[0]);
+    f->eax = filesize((int)arg[0]);
     break;
   case SYS_READ:
     get_arg(f->esp, arg, 3);
     check_validation((void *)arg[1]);
-    read((int)arg[0], (void *)arg[1], (unsigned int)arg[2]);
+    f->eax = read((int)arg[0], (void *)arg[1], (unsigned int)arg[2]);
     break;
   case SYS_WRITE:
     get_arg(f->esp, arg, 3);
     check_validation((void *)arg[1]);
-    write((int)arg[0], (const void *)arg[1], (unsigned int)arg[2]);
+    f->eax = write((int)arg[0], (const void *)arg[1], (unsigned int)arg[2]);
     break;
   case SYS_SEEK:
     get_arg(f->esp, arg, 2);
@@ -92,7 +92,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     break;
   case SYS_TELL:
     get_arg(f->esp, arg, 1);
-    tell((int)arg[0]);
+    f->eax = tell((int)arg[0]);
     break;
   case SYS_CLOSE:
     get_arg(f->esp, arg, 1);
