@@ -185,8 +185,13 @@ int open (const char *file)
 }
 
 int filesize (int fd)
-{
+{ 
+  struct file *f = process_get_file(fd);
 
+  if (f == NULL)
+    return -1;
+
+  return file_length(f);
 }
 
 int read (int fd, void *buffer, unsigned size)
