@@ -212,6 +212,7 @@ process_exit (void)
   uint32_t *pd;
 
   file_close(cur->running_file);
+  palloc_free_page(cur->fdt); //memory - leak
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
