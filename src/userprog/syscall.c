@@ -136,7 +136,7 @@ void exit (int status)
   for (int fd = 2; fd < FDIDX_LIMIT; fd++)
   { 
     if (thread_current()->fdt[fd] != NULL)
-      process_close_file(fd);
+      close(fd);
   }
   thread_exit();
 }
@@ -163,17 +163,26 @@ int wait (pid_t pid)
 }
 
 bool create (const char *file, unsigned initial_size)
-{
-  return filesys_create(file, initial_size);
+{ 
+  lock_acquire(&file_sys);
+  bool ret = filesys_create(file, initial_size);
+  lock_release(&file_sys);
+
+  return ret;
 }
 
 bool remove (const char *file)
-{
-  return filesys_remove(file);
+{ 
+  lock_acquire(&file_sys);
+  bool ret = filesys_remove(file);
+  lock_release(&file_sys);
+
+  return ret;
 }
 
 int open (const char *file)
-{
+{ 
+  lock_acquire(&file_sys);
   struct file *f = filesys_open(file);
   if (f == NULL)
     return -1;
@@ -183,6 +192,7 @@ int open (const char *file)
   if (fd == -1)
     file_close(f);
   
+  lock_release(&file_sys);
   return fd;
 }
 
@@ -193,7 +203,11 @@ int filesize (int fd)
   if (f == NULL)
     return -1;
 
-  return file_length(f);
+  lock_acquire(&file_sys);
+  int ret = file_length(f);
+  lock_release(&file_sys);
+
+  return ret;
 }
 
 int read (int fd, void *buffer, unsigned size)
@@ -259,8 +273,10 @@ void seek (int fd, unsigned position)
   struct file *f = process_get_file(fd);
   if (f == NULL)
     return;
-  
+
+  lock_acquire(&file_sys);
   file_seek(f, position);
+  lock_release(&file_sys);
 }
 unsigned tell (int fd)
 {
@@ -268,10 +284,16 @@ unsigned tell (int fd)
   if (f == NULL)
     return;
   
-  return file_tell(f);
+  lock_acquire(&file_sys);
+  int ret = file_tell(f);
+  lock_release(&file_sys);
+
+  return ret;
 }
 
 void close (int fd)
-{
+{ 
+  lock_acquire(&file_sys);
   process_close_file(fd);
+  lock_release(&file_sys);
 }
