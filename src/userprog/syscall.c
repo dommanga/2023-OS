@@ -253,8 +253,12 @@ int write (int fd, const void *buffer, unsigned size)
 }
 
 void seek (int fd, unsigned position)
-{
-
+{ 
+  struct file *f = process_get_file(fd);
+  if (f == NULL)
+    return;
+  
+  file_seek(f, position);
 }
 unsigned tell (int fd)
 {
