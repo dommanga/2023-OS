@@ -203,8 +203,8 @@ thread_create (const char *name, int priority,
   if (t->fdt == NULL)
     return TID_ERROR;
   t->fd_idx = 2; //0, 1 is std I/O
-  t->fdt[0] = FD_STDIN;
-  t->fdt[1] = FD_STDOUT;
+  t->fdt[FD_STDIN] = 1;
+  t->fdt[FD_STDOUT] = 2;
 
   /* Add to run queue. */
   thread_unblock (t);
