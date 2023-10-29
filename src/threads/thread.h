@@ -28,8 +28,8 @@ typedef int tid_t;
 //define file descriptor table size and limit of fd_idx
 #define FDT_SIZE 128
 #define FDIDX_LIMIT FDT_SIZE //fd_idx can't be equal or more than 128
-#define FD_STDIN 1
-#define FD_STDOUT 2
+#define FD_STDIN 0
+#define FD_STDOUT 1
 
 /* A kernel thread or user process.
 
