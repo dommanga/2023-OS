@@ -11,9 +11,6 @@
 #include "filesys/file.h"
 #include "userprog/process.h"
 
-//synchronization of file system
-static struct lock file_sys;
-
 static void syscall_handler (struct intr_frame *);
 void get_arg (void *esp, int *arg, int count);
 void check_validation (void *p);

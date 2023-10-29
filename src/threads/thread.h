@@ -118,6 +118,8 @@ struct thread
     struct file **fdt;
     int fd_idx;
 
+    struct file *running_file;
+
     unsigned magic;                     /* Detects stack overflow. */
   };
 
