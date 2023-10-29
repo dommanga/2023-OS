@@ -51,9 +51,6 @@ process_execute (const char *file_name)
   char *file_title;
   file_title = strtok_r(fn_copy_two, " ", &next_ptr); //now file_name is only "name" for the file
 
-  if (filesys_open (file_title) == NULL) 
-    return TID_ERROR;
-
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_title, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
@@ -408,7 +405,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
   file = filesys_open (file_name);
   if (file == NULL) 
     { 
-      lock_release(&file_sys);
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
