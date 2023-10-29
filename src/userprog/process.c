@@ -271,7 +271,18 @@ process_store_new_file (struct file *f)
   return fd;
 }
 
+//get file pointer from fd_idx. return NULL if fail.
+struct file *
+process_get_file (int fd)
+{ 
+  if (fd < 0 || fd > FDIDX_LIMIT)
+    return NULL;
 
+  struct thread *cur = thread_current();
+  struct file *f = cur->fdt[fd];
+
+  return f;
+}
 
 
 /* We load ELF binaries.  The following definitions are taken
