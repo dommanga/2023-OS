@@ -262,7 +262,11 @@ void seek (int fd, unsigned position)
 }
 unsigned tell (int fd)
 {
-
+  struct file *f = process_get_file(fd);
+  if (f == NULL)
+    return;
+  
+  return file_tell(f);
 }
 
 void close (int fd)
