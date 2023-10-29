@@ -284,6 +284,33 @@ process_get_file (int fd)
   return f;
 }
 
+//close file from fd_idx.
+void
+process_close_file (int fd)
+{ 
+  if (fd < 0 || fd > FDIDX_LIMIT)
+    return NULL;
+  
+  struct thread *cur = thread_current();
+  struct file *f = process_get_file(fd);
+  if (f == NULL)
+    return;
+  
+  file_close(f);
+  cur->fdt[fd] = NULL;
+  
+  //set cur->fd_idx to minimum value of NULL space in fdt
+  for (int min_fd = 2; min_fd < FDIDX_LIMIT; min_fd++)
+  {
+    if (cur->fdt[min_fd] == NULL)
+    {
+      cur->fd_idx = min_fd;
+      break;
+    }
+  }
+
+}
+
 
 /* We load ELF binaries.  The following definitions are taken
    from the ELF specification, [ELF1], more-or-less verbatim.  */

@@ -136,6 +136,11 @@ void exit (int status)
 { 
   thread_current()->exit_status = status;
   printf("%s: exit(%d)\n", thread_name(), status);
+  for (int fd = 2; fd < FDIDX_LIMIT; fd++)
+  { 
+    if (thread_current()->fdt[fd] != NULL)
+      process_close_file(fd);
+  }
   thread_exit();
 }
 
@@ -271,5 +276,5 @@ unsigned tell (int fd)
 
 void close (int fd)
 {
-
+  process_close_file(fd);
 }
