@@ -25,6 +25,12 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
+//define file descriptor table size and limit of fd_idx
+#define FDT_SIZE 128
+#define FDIDX_LIMIT FDT_SIZE //fd_idx is pointing always the next one of the LAST FD!
+#define FD_STDIN 1
+#define FD_STDOUT 2
+
 /* A kernel thread or user process.
 
    Each thread structure is stored in its own 4 kB page.  The
@@ -97,6 +103,9 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+#endif
+
+    /* Owned by thread.c. */
     int exit_status;
     struct thread *parent;
     struct list child_list;
@@ -106,11 +115,9 @@ struct thread
     struct semaphore loaded;
     bool load_success;
     
-    struct file *fdt[128];
+    struct file **fdt;
     int fd_idx;
-#endif
 
-    /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
 

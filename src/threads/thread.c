@@ -198,6 +198,14 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
+  //page for file descriptor table.
+  t->fdt = palloc_get_page (PAL_ZERO);
+  if (t->fdt == NULL)
+    return TID_ERROR;
+  t->fd_idx = 2; //0, 1 is std I/O
+  t->fdt[0] = FD_STDIN;
+  t->fdt[1] = FD_STDOUT;
+
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -484,18 +492,13 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
 
-  #ifdef USERPROG
-    t->exit_status = 0;
-    list_init(&t->child_list);
-    sema_init(&t->t_exit, 0);
-    sema_init(&t->parent_take, 0);
-    sema_init(&t->loaded, 0);
-    t->load_success = false;
-    list_push_back(&running_thread()->child_list, &t->child_elem);
-    for (int i = 0; i < 128; i++)
-      t->fdt[i] = NULL;
-    fd_idx = 2; //0, 1 is std I/O
-  #endif
+  t->exit_status = 0;
+  list_init(&t->child_list);
+  sema_init(&t->t_exit, 0);
+  sema_init(&t->parent_take, 0);
+  sema_init(&t->loaded, 0);
+  t->load_success = false;
+  list_push_back(&running_thread()->child_list, &t->child_elem);
 
   t->magic = THREAD_MAGIC;
 
