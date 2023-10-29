@@ -7,6 +7,8 @@
 #include "threads/vaddr.h"
 #include "userprog/pagedir.h"
 #include "devices/shutdown.h"
+#include "filesys/filesys.h"
+#include "filesys/file.h"
 
 //synchronization of file system
 static struct lock file_sys;
@@ -159,12 +161,12 @@ int wait (pid_t pid)
 
 bool create (const char *file, unsigned initial_size)
 {
-
+  return filesys_create(file, initial_size);
 }
 
 bool remove (const char *file)
 {
-  
+  return filesys_remove(file);
 }
 
 int open (const char *file)
