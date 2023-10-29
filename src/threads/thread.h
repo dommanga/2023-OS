@@ -27,7 +27,7 @@ typedef int tid_t;
 
 //define file descriptor table size and limit of fd_idx
 #define FDT_SIZE 128
-#define FDIDX_LIMIT FDT_SIZE //fd_idx is pointing always the next one of the LAST FD!
+#define FDIDX_LIMIT FDT_SIZE //fd_idx can't be equal or more than 128
 #define FD_STDIN 1
 #define FD_STDOUT 2
 

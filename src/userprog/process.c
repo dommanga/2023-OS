@@ -248,6 +248,31 @@ process_activate (void)
      interrupts. */
   tss_update ();
 }
+
+//add file to file descriptor table. if fail, return -1.
+int
+process_store_new_file (struct file *f)
+{
+  struct thread *cur = thread_current();
+  int fd = cur->fd_idx;
+  for (fd; fd < FDIDX_LIMIT; fd++)
+  {
+    if (cur->fdt[fd] == NULL)
+    {
+      cur->fdt[fd] = f;
+      cur->fd_idx = fd;
+      break;
+    }
+  }
+
+  if (fd >= FDIDX_LIMIT)
+    fd = -1;
+
+  return fd;
+}
+
+
+
 
 /* We load ELF binaries.  The following definitions are taken
    from the ELF specification, [ELF1], more-or-less verbatim.  */
