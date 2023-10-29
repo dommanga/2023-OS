@@ -195,8 +195,34 @@ int filesize (int fd)
 }
 
 int read (int fd, void *buffer, unsigned size)
-{
+{ 
+  if (fd == FD_STDOUT)
+    return -1;
   
+  int read_cnt = 0;
+  char *buf_arg = buffer;
+
+  if (fd == FD_STDIN)
+  { 
+    while (read_cnt < size)
+    {
+      buf_arg[read_cnt] = input_getc();
+      if (buf_arg[read_cnt] == '\0')
+        break;
+      read_cnt++;
+    }
+  }
+  else
+  {
+    struct file *f = process_get_file(fd);
+    if (f == NULL)
+      return -1;
+    lock_acquire(&file_sys);
+    read_cnt = file_read(f, buffer, size);
+    lock_release(&file_sys);
+  }
+  
+  return read_cnt;
 }
 
 int write (int fd, const void *buffer, unsigned size)
