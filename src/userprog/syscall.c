@@ -172,7 +172,18 @@ bool remove (const char *file)
 
 int open (const char *file)
 {
+  struct file *f = filesys_open(file);
+  if (f == NULL)
+    return -1;
+  
+  int fd = process_store_new_file(f);
 
+  if (fd == -1)
+  {
+    //file close
+  }
+  
+  return fd;
 }
 
 int filesize (int fd)
