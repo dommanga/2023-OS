@@ -179,9 +179,7 @@ int open (const char *file)
   int fd = process_store_new_file(f);
 
   if (fd == -1)
-  {
-    //file close
-  }
+    file_close(f);
   
   return fd;
 }
