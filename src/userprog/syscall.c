@@ -227,14 +227,29 @@ int read (int fd, void *buffer, unsigned size)
 
 int write (int fd, const void *buffer, unsigned size)
 {
-  int ret = -1;
-
-  if (fd == 1)
+  int written_size;
+  
+  if (fd == FD_STDIN)
+  {
+    return -1;
+  }
+  else if (fd == FD_STDOUT)
   {
     putbuf(buffer, size);
-    ret = size;
+    written_size = size;
   }
-  return ret;
+  else
+  {
+    struct file *f = process_get_file(fd);
+    if (fd == NULL)
+      return -1;
+    
+    lock_acquire(&file_sys);
+    written_size = file_write(f, buffer, size);  
+    lock_release(&file_sys);
+  }
+
+  return written_size;
 }
 
 void seek (int fd, unsigned position)
