@@ -17,7 +17,8 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
-#include "userprog/syscall.h"
+
+extern struct lock file_sys;
 
 int parsing_arg (char *arguments, char **result);
 void stack_argument (char **parse, int count, void **esp);
@@ -230,8 +231,6 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
-    sema_up(&cur->t_exit);
-    sema_down(&cur->parent_take);
 }
 
 /* Sets up the CPU for running user code in the current
@@ -267,7 +266,10 @@ process_store_new_file (struct file *f)
   }
 
   if (fd >= FDIDX_LIMIT)
-    fd = -1;
+    { 
+      cur->fd_idx = fd;
+      fd = -1;
+    }
 
   return fd;
 }
@@ -276,7 +278,7 @@ process_store_new_file (struct file *f)
 struct file *
 process_get_file (int fd)
 { 
-  if (fd < 0 || fd > FDIDX_LIMIT)
+  if (fd < 0 || fd >= FDIDX_LIMIT)
     return NULL;
 
   struct thread *cur = thread_current();
@@ -289,8 +291,8 @@ process_get_file (int fd)
 void
 process_close_file (int fd)
 { 
-  if (fd < 0 || fd > FDIDX_LIMIT)
-    return NULL;
+  if (fd <= 1 || fd >= FDIDX_LIMIT)
+    return;
   
   struct thread *cur = thread_current();
   struct file *f = process_get_file(fd);
@@ -306,10 +308,10 @@ process_close_file (int fd)
     if (cur->fdt[min_fd] == NULL)
     {
       cur->fd_idx = min_fd;
-      break;
+      return;
     }
   }
-
+  cur->fd_idx = FDIDX_LIMIT;
 }
 
 
@@ -402,14 +404,17 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+  lock_acquire(&file_sys);
   /* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL) 
     { 
+      lock_release(&file_sys);
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
   file_deny_write(file);
+  lock_release(&file_sys);
   t->running_file = file;
 
   /* Read and verify executable header. */
