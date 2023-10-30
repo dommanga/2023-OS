@@ -265,7 +265,7 @@ int write (int fd, const void *buffer, unsigned size)
   else
   {
     struct file *f = process_get_file(fd);
-    if (fd == NULL)
+    if (f == NULL)
       return -1;
     
     lock_acquire(&file_sys);
@@ -290,7 +290,7 @@ unsigned tell (int fd)
 {
   struct file *f = process_get_file(fd);
   if (f == NULL)
-    return;
+    exit (-1);
   
   lock_acquire(&file_sys);
   int ret = file_tell(f);
