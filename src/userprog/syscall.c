@@ -155,6 +155,8 @@ pid_t exec (const char *cmd_line)
     sema_down(&t->loaded);
     if (t->load_success) //load success!
       return child_tid;
+    else //load fail. parent should wait(회수) for child exited with -1.
+      return wait(child_tid);
   }
 
   return -1;
