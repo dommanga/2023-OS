@@ -11,6 +11,9 @@
 #include "filesys/file.h"
 #include "userprog/process.h"
 
+//synchronization of file system
+struct lock file_sys;
+
 static void syscall_handler (struct intr_frame *);
 void get_arg (void *esp, int *arg, int count);
 void check_validation (void *p);
@@ -185,7 +188,10 @@ int open (const char *file)
   lock_acquire(&file_sys);
   struct file *f = filesys_open(file);
   if (f == NULL)
+  { 
+    lock_release(&file_sys);
     return -1;
+  }
   
   int fd = process_store_new_file(f);
 
