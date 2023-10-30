@@ -314,6 +314,18 @@ thread_exit (void)
 #ifdef USERPROG
   process_exit ();
 #endif
+  struct thread *cur = thread_current();
+  //this current thread's child must disconnect with parent. (can exit without parent_take)
+  for (struct list_elem *e = list_begin(&cur->child_list); e != list_end(&cur->child_list);)
+  {
+    struct thread *child = list_entry(e, struct thread, child_elem);
+    child->parent = NULL;
+    e = list_remove(e);
+    sema_up(&child->parent_take);
+  }
+
+  sema_up(&cur->t_exit);
+  sema_down(&cur->parent_take);
 
   /* Remove thread from all threads list, set our status to dying,
      and schedule another process.  That process will destroy us
@@ -499,6 +511,7 @@ init_thread (struct thread *t, const char *name, int priority)
   sema_init(&t->loaded, 0);
   t->load_success = false;
   list_push_back(&running_thread()->child_list, &t->child_elem);
+  t->parent = running_thread();
 
   t->magic = THREAD_MAGIC;
 
