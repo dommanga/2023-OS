@@ -198,6 +198,14 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
+  //page for file descriptor table.
+  t->fdt = palloc_get_page (PAL_ZERO);
+  if (t->fdt == NULL)
+    return TID_ERROR;
+  t->fd_idx = 2; //0, 1 is std I/O
+  t->fdt[FD_STDIN] = 1;
+  t->fdt[FD_STDOUT] = 2;
+
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -275,6 +283,27 @@ thread_tid (void)
   return thread_current ()->tid;
 }
 
+//return child thread pointer, if non-exist in child_list matching tid, then return NULL
+struct thread *
+thread_get_child (tid_t child_tid)
+{ 
+  struct thread *cur = thread_current();
+  struct list_elem *e;
+
+  if (!list_empty(&cur->child_list))
+  {
+    for (e = list_begin(&cur->child_list); e != list_end(&cur->child_list); e = list_next(e))
+    {
+      struct thread *t = list_entry(e, struct thread, child_elem);
+      if (t->tid == child_tid)
+      {
+        return t;
+      }
+    }
+  }
+  return NULL;
+}
+
 /* Deschedules the current thread and destroys it.  Never
    returns to the caller. */
 void
@@ -285,6 +314,18 @@ thread_exit (void)
 #ifdef USERPROG
   process_exit ();
 #endif
+  struct thread *cur = thread_current();
+  //this current thread's child must disconnect with parent. (can exit without parent_take)
+  for (struct list_elem *e = list_begin(&cur->child_list); e != list_end(&cur->child_list);)
+  {
+    struct thread *child = list_entry(e, struct thread, child_elem);
+    child->parent = NULL;
+    e = list_remove(e);
+    sema_up(&child->parent_take);
+  }
+
+  sema_up(&cur->t_exit);
+  sema_down(&cur->parent_take);
 
   /* Remove thread from all threads list, set our status to dying,
      and schedule another process.  That process will destroy us
@@ -462,6 +503,16 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+
+  t->exit_status = 0;
+  list_init(&t->child_list);
+  sema_init(&t->t_exit, 0);
+  sema_init(&t->parent_take, 0);
+  sema_init(&t->loaded, 0);
+  t->load_success = false;
+  list_push_back(&running_thread()->child_list, &t->child_elem);
+  t->parent = running_thread();
+
   t->magic = THREAD_MAGIC;
 
   old_level = intr_disable ();
