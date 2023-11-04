@@ -18,6 +18,10 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+extern struct lock file_sys;
+
+int parsing_arg (char *arguments, char **result);
+void stack_argument (char **parse, int count, void **esp);
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -29,6 +33,7 @@ tid_t
 process_execute (const char *file_name) 
 {
   char *fn_copy;
+  char *fn_copy_two;
   tid_t tid;
 
   /* Make a copy of FILE_NAME.
@@ -38,10 +43,21 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  fn_copy_two = palloc_get_page (0);
+  if (fn_copy_two == NULL)
+    return TID_ERROR;
+  strlcpy (fn_copy_two, file_name, PGSIZE);
+
+  char *next_ptr;
+  char *file_title;
+  file_title = strtok_r(fn_copy_two, " ", &next_ptr); //now file_name is only "name" for the file
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (file_title, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+    palloc_free_page (fn_copy);
+  
+  palloc_free_page (fn_copy_two);
   return tid;
 }
 
@@ -54,17 +70,27 @@ start_process (void *file_name_)
   struct intr_frame if_;
   bool success;
 
+  char *arg_result[128];
+  int arg_num = parsing_arg (file_name, arg_result);
+
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load (arg_result[0], &if_.eip, &if_.esp);
+
+  if (success)
+    stack_argument (arg_result, arg_num, &if_.esp);
+
+  thread_current()->load_success = success;
+  sema_up(&thread_current()->loaded);
+  
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
-    thread_exit ();
+    exit (-1);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -74,6 +100,80 @@ start_process (void *file_name_)
      and jump to it. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
+}
+
+//parsing argument into result string array.
+int 
+parsing_arg (char *arguments, char **result)
+{
+  char *token;
+  char *next_ptr;
+
+  int i = 0;
+  token = strtok_r(arguments, " ", &next_ptr);
+  result[i] = token;
+  
+  while (token)
+  { 
+    token = strtok_r(NULL, " ", &next_ptr);
+    i++;
+    result[i] = token;
+  }
+  
+  return i;
+}
+
+void
+stack_argument (char **parse, int count, void **esp)
+{ 
+  int length_all = 0;
+  char *address[128];
+
+  //push arguments into stack
+  int i;
+  for (i = count - 1; i > -1; i--)
+  { 
+    int single_length = strlen(parse[i]) + 1;
+    *esp -= single_length;
+    length_all += single_length;
+    memcpy(*esp, parse[i], single_length);
+    address[i] = *esp;
+  }
+  
+  //word-align
+  while ((length_all % 4) != 0)
+  { 
+    *esp -= 1;
+    memset(*esp, 0, sizeof(uint8_t));
+    length_all++;
+  }
+
+  //push address
+  for (i = count; i > -1; i--)
+  { 
+    *esp -= 4;
+    if (i == count)
+    {
+      memset(*esp, 0, sizeof(char**));
+    }
+    else
+    {
+      memcpy(*esp, &address[i], sizeof(char**));
+    }
+  }
+
+  //push argv address
+  *esp -= 4;
+  **(uint32_t **)esp = *esp + 4;
+
+  //push argc
+  *esp -= 4;
+  **(uint32_t **)esp = count;
+
+  //push return address
+  *esp -= 4;
+  **(uint32_t **)esp = 0;
+
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
@@ -87,7 +187,20 @@ start_process (void *file_name_)
    does nothing. */
 int
 process_wait (tid_t child_tid UNUSED) 
-{
+{ 
+  int child_exit_status;
+
+  struct thread *t = thread_get_child(child_tid);
+
+  if (t != NULL) // exist child thread matching child_tid
+  {
+    sema_down(&t->t_exit);
+    child_exit_status = t->exit_status;
+    list_remove(&t->child_elem);
+    sema_up(&t->parent_take);
+    return child_exit_status;
+  }
+
   return -1;
 }
 
@@ -97,6 +210,9 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  file_close(cur->running_file);
+  palloc_free_page(cur->fdt); //memory - leak
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -131,6 +247,72 @@ process_activate (void)
      interrupts. */
   tss_update ();
 }
+
+//add file to file descriptor table. if fail, return -1.
+int
+process_store_new_file (struct file *f)
+{
+  struct thread *cur = thread_current();
+  int fd = cur->fd_idx;
+  for (fd; fd < FDIDX_LIMIT; fd++)
+  {
+    if (cur->fdt[fd] == NULL)
+    {
+      cur->fdt[fd] = f;
+      cur->fd_idx = fd;
+      break;
+    }
+  }
+
+  if (fd >= FDIDX_LIMIT)
+    { 
+      cur->fd_idx = fd;
+      fd = -1;
+    }
+
+  return fd;
+}
+
+//get file pointer from fd_idx. return NULL if fail.
+struct file *
+process_get_file (int fd)
+{ 
+  if (fd < 0 || fd >= FDIDX_LIMIT)
+    return NULL;
+
+  struct thread *cur = thread_current();
+  struct file *f = cur->fdt[fd];
+
+  return f;
+}
+
+//close file from fd_idx.
+void
+process_close_file (int fd)
+{ 
+  if (fd <= 1 || fd >= FDIDX_LIMIT)
+    return;
+  
+  struct thread *cur = thread_current();
+  struct file *f = process_get_file(fd);
+  if (f == NULL)
+    return;
+  
+  file_close(f);
+  cur->fdt[fd] = NULL;
+  
+  //set cur->fd_idx to minimum value of NULL space in fdt
+  for (int min_fd = 2; min_fd < FDIDX_LIMIT; min_fd++)
+  {
+    if (cur->fdt[min_fd] == NULL)
+    {
+      cur->fd_idx = min_fd;
+      return;
+    }
+  }
+  cur->fd_idx = FDIDX_LIMIT;
+}
+
 
 /* We load ELF binaries.  The following definitions are taken
    from the ELF specification, [ELF1], more-or-less verbatim.  */
@@ -221,13 +403,18 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+  lock_acquire(&file_sys);
   /* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL) 
-    {
+    { 
+      lock_release(&file_sys);
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
+  file_deny_write(file);
+  lock_release(&file_sys);
+  t->running_file = file;
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -312,7 +499,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
   return success;
 }
 

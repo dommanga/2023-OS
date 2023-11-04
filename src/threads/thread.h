@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "threads/synch.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -23,6 +24,12 @@ typedef int tid_t;
 #define PRI_MIN 0                       /* Lowest priority. */
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
+
+//define file descriptor table size and limit of fd_idx
+#define FDT_SIZE 128
+#define FDIDX_LIMIT FDT_SIZE //fd_idx can't be equal or more than 128
+#define FD_STDIN 0
+#define FD_STDOUT 1
 
 /* A kernel thread or user process.
 
@@ -99,6 +106,20 @@ struct thread
 #endif
 
     /* Owned by thread.c. */
+    int exit_status;
+    struct thread *parent;
+    struct list child_list;
+    struct list_elem child_elem;
+    struct semaphore t_exit;
+    struct semaphore parent_take;
+    struct semaphore loaded;
+    bool load_success;
+    
+    struct file **fdt;
+    int fd_idx;
+
+    struct file *running_file;
+
     unsigned magic;                     /* Detects stack overflow. */
   };
 
@@ -122,6 +143,7 @@ void thread_unblock (struct thread *);
 struct thread *thread_current (void);
 tid_t thread_tid (void);
 const char *thread_name (void);
+struct thread *thread_get_child (tid_t child_tid);
 
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
