@@ -12,8 +12,8 @@ init_frame_table (void)
     lock_init(&frame_lock);
 }
 
-void *
-get_frame(void *upage)
+struct ft_entry *
+get_frame(uint8_t *upage)
 {
 
 }
@@ -31,7 +31,7 @@ evict_victim(struct ft_entry *fte)
 }
 
 void 
-free_all_frame(void *kpage)
+free_all_frame(uint8_t *kpage)
 {
 
 }
