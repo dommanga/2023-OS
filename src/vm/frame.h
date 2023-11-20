@@ -12,8 +12,8 @@ struct ft_entry
     struct hash_elem frame_elem;
 };
 
-void init_frame_table (void);
-struct ft_entry *get_frame(uint8_t *upage);
+void frame_table_init (void);
+struct ft_entry *frame_table_get_frame(uint8_t *upage);
 struct ft_entry *find_victim();
 void evict_victim(struct ft_entry *fte);
-void free_all_frame(uint8_t *kpage);
+void frame_table_free_all_frame(uint8_t *kpage);
