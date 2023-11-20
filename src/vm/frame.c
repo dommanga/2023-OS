@@ -38,8 +38,10 @@ frame_table_get_frame (uint8_t *upage)
     fte->t = thread_current();
     fte->upage = upage;
 
-    //frame_table insert
+    lock_acquire(&frame_lock);
     bool result = kpage_insert(fte);
+    lock_release(&frame_lock);
+
     ASSERT (result == true);
     
     return fte;
