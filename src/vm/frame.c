@@ -1,10 +1,13 @@
 #include "vm/frame.h"
 #include "threads/synch.h"
 
-//global variable
+//Global variable frame_table for eviction.
 struct hash frame_table;
+
+//Thread must acquire lock for frame_table when it approach.
 struct lock frame_lock;
 
+//Initialize frame table and frame lock.
 void 
 init_frame_table (void)
 {   
@@ -12,24 +15,28 @@ init_frame_table (void)
     lock_init(&frame_lock);
 }
 
+// Get frame and store info for frame and if needed, do eviction. If success, return the kpage and else, return NULL.
 struct ft_entry *
 get_frame(uint8_t *upage)
 {
 
 }
 
+//
 struct ft_entry *
 find_victim()
 {
 
 }
 
+//
 void 
 evict_victim(struct ft_entry *fte)
 {
 
 }
 
+//
 void 
 free_all_frame(uint8_t *kpage)
 {

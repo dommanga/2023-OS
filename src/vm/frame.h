@@ -3,7 +3,7 @@
 
 typedef struct frame_table_entry ft_entry;
 
-//structure for frame table entry
+//structure for frame table entry. It must offer information about frame to support page eviction.
 struct ft_entry
 {
     uint8_t *kpage;
