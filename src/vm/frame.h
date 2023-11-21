@@ -1,5 +1,6 @@
 #include <hash.h>
 #include "threads/thread.h"
+#include <list.h>
 
 typedef struct frame_table_entry ft_entry;
 
@@ -10,6 +11,7 @@ struct ft_entry
     uint8_t *upage;
     struct thread *t;
     struct hash_elem frame_elem;
+    struct list_elem list_elem;
 };
 
 void frame_table_init (void);

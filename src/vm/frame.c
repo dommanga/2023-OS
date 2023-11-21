@@ -21,7 +21,7 @@ frame_table_init (void)
 // Get frame and store info for frame and if needed, do eviction. If success, return the ft_entry.
 struct ft_entry *
 frame_table_get_frame (uint8_t *upage, enum palloc_flags flag)
-{
+{   struct thread *cur = thread_current();
     uint8_t *kpage = palloc_get_page (flag);
 
     if (kpage == NULL)
@@ -36,8 +36,10 @@ frame_table_get_frame (uint8_t *upage, enum palloc_flags flag)
     struct ft_entry *fte = (struct ft_entry *)malloc(sizeof(struct ft_entry));
 
     fte->kpage = kpage;
-    fte->t = thread_current();
+    fte->t = cur;
     fte->upage = upage;
+
+    list_push_back(&cur->frame_own_list, &fte->list_elem);
 
     lock_acquire(&frame_lock);
     bool result = frame_insert(fte);
@@ -58,6 +60,7 @@ frame_table_free_frame (uint8_t *kpage)
     frame_delete(fte);
 
     lock_release(&frame_lock);
+    list_remove(&fte->list_elem);
     free(fte);
 }
 
@@ -97,7 +100,13 @@ void
 frame_table_free_all_frames (void)
 {
     struct thread *cur = thread_current();
+    
     //find frame, thread must maintain own frame_list.
+    for (struct list_elem *e = list_begin(&cur->frame_own_list); e != list_end(&cur->frame_own_list); e = list_next(e))
+    {
+        struct ft_entry *fte = list_entry(e, struct ft_entry, list_elem);
+        frame_table_free_frame(fte->kpage);
+    }
 
 }
 
