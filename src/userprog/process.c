@@ -18,6 +18,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "vm/frame.h"
+#include "vm/page.h"
 
 extern struct lock file_sys;
 
@@ -73,6 +74,8 @@ start_process (void *file_name_)
 
   char *arg_result[128];
   int arg_num = parsing_arg (file_name, arg_result);
+
+  spt_init();
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -586,7 +589,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       /* Get a page of memory. */
       struct ft_entry *fte = frame_table_get_frame(upage, PAL_USER);
       uint8_t *kpage = fte->kpage;
-      
+
       if (kpage == NULL)
         return false;
 
