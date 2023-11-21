@@ -120,8 +120,6 @@ struct thread
 
     struct file *running_file;
 
-    struct list frame_own_list;
-
     unsigned magic;                     /* Detects stack overflow. */
   };
 

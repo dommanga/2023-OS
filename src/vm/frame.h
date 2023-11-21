@@ -11,8 +11,7 @@ struct ft_entry
     uint8_t *kpage;
     uint8_t *upage;
     struct thread *t;
-    struct hash_elem frame_elem;
-    struct list_elem list_elem;
+    struct list_elem frame_elem;
 };
 
 void frame_table_init (void);
