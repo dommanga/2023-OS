@@ -1,6 +1,5 @@
 #include "vm/frame.h"
 #include "threads/synch.h"
-#include "threads/palloc.h"
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
 
@@ -9,6 +8,11 @@ struct hash frame_table;
 
 //Thread must acquire lock for frame_table when it approach.
 struct lock frame_lock;
+
+unsigned frame_hash (const struct hash_elem *p_, void *aux UNUSED);
+bool frame_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED);
+bool frame_insert (struct ft_entry *fte);
+bool frame_delete (struct ft_entry *fte);
 
 //Initialize frame table and frame lock.
 void 
@@ -19,7 +23,7 @@ frame_table_init (void)
 }
 
 // Get frame and store info for frame and if needed, do eviction. If success, return the ft_entry.
-struct ft_entry *
+struct ft_entry*
 frame_table_get_frame (uint8_t *upage, enum palloc_flags flag)
 {   struct thread *cur = thread_current();
     uint8_t *kpage = palloc_get_page (flag);
@@ -132,9 +136,8 @@ bool
 frame_insert (struct ft_entry *fte)
 {   
     ASSERT (lock_held_by_current_thread(&frame_lock));
-    bool ret = hash_insert(&frame_table, &fte->frame_elem);
     
-    if (ret == NULL)
+    if (!hash_insert(&frame_table, &fte->frame_elem))
         return true;
     else
         return false;
@@ -144,9 +147,8 @@ bool
 frame_delete (struct ft_entry *fte)
 {   
     ASSERT (lock_held_by_current_thread(&frame_lock));
-    bool ret = hash_delete(&frame_table, &fte->frame_elem);
     
-    if (ret == NULL)
+    if (hash_delete(&frame_table, &fte->frame_elem))
         return true;
     else
         return false;

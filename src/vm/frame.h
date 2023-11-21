@@ -1,5 +1,6 @@
 #include <hash.h>
 #include "threads/thread.h"
+#include "threads/palloc.h"
 #include <list.h>
 
 typedef struct frame_table_entry ft_entry;
