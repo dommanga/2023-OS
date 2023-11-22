@@ -10,6 +10,7 @@
 #include "filesys/filesys.h"
 #include "filesys/file.h"
 #include "userprog/process.h"
+#include "vm/page.h"
 
 //synchronization of file system
 struct lock file_sys;
@@ -17,6 +18,8 @@ struct lock file_sys;
 static void syscall_handler (struct intr_frame *);
 void get_arg (void *esp, int *arg, int count);
 void check_validation (void *p);
+void check_buffer_validation (void *buffer, unsigned size);
+void check_str_validation (void *str, unsigned size);
 void halt (void);
 void exit (int status);
 pid_t exec (const char *cmd_line);
@@ -85,12 +88,14 @@ syscall_handler (struct intr_frame *f UNUSED)
     break;
   case SYS_READ:
     get_arg(f->esp, arg, 3);
-    check_validation((void *)arg[1]);
+    // check_validation((void *)arg[1]);
+    check_buffer_validation((void *)arg[1], (unsigned int)arg[2]);
     f->eax = read((int)arg[0], (void *)arg[1], (unsigned int)arg[2]);
     break;
   case SYS_WRITE:
     get_arg(f->esp, arg, 3);
-    check_validation((void *)arg[1]);
+    // check_validation((void *)arg[1]);
+    check_str_validation((void *)arg[1], (unsigned int)arg[2]);
     f->eax = write((int)arg[0], (const void *)arg[1], (unsigned int)arg[2]);
     break;
   case SYS_SEEK:
@@ -125,6 +130,40 @@ void check_validation (void *p)
 
   if (p == NULL || is_kernel_vaddr(p) || pagedir_get_page(t->pagedir, p) == NULL)
     exit(-1);
+}
+
+void check_buffer_validation (void *buffer, unsigned size)
+{
+  if (buffer == NULL || is_kernel_vaddr(buffer))
+    exit(-1);
+  
+  void* p = pg_round_down(buffer);
+
+  for (p; p < buffer + size; p = pg_round_up((void *)(uintptr_t)p + 1))
+  { 
+    struct spt_entry *spte = spt_search_page(p);
+    if(spte == NULL || !spte->writable)
+    {
+      exit(-1);
+    }
+  }
+}
+
+void check_str_validation (void *str, unsigned size)
+{
+  if (str == NULL || is_kernel_vaddr(str))
+    exit(-1);
+  
+  void* p = pg_round_down(str);
+
+  for (p; p < str + size; p = pg_round_up((void *)(uintptr_t)p + 1))
+  { 
+    struct spt_entry *spte = spt_search_page(p);
+    if(spte == NULL)
+    {
+      exit(-1);
+    }
+  }
 }
 
 void halt (void)
