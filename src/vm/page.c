@@ -1,7 +1,11 @@
 #include "vm/page.h"
 #include "threads/vaddr.h"
 #include "threads/malloc.h"
+#include "filesys/file.h"
+#include "userprog/syscall.h"
+#include "userprog/process.h"
 
+extern struct lock file_sys;
 
 void free_spte (struct hash_elem *e, void *aux UNUSED);
 unsigned page_hash (const struct hash_elem *p_, void *aux UNUSED);
@@ -95,10 +99,30 @@ spt_search_page (uint8_t *upage)
     return hash_entry(e, struct spt_entry, spage_elem);
 }
 
-void 
+bool 
 spt_load_data_to_page (struct spt_entry *spte, uint8_t *kpage)
-{
+{   
+    lock_acquire(&file_sys);
+    file_seek(spte->backed_file, spte->offset);
 
+    if (file_read (spte->backed_file, kpage, spte->page_read_bytes) != (int) spte->page_read_bytes)
+    { 
+        lock_release(&file_sys);
+        frame_table_free_frame(kpage);
+        return false; 
+    }
+    lock_release(&file_sys);
+    memset (kpage + spte->page_read_bytes, 0, spte->page_zero_bytes);
+
+    spte->kpage = kpage;
+    
+    /* Add the page to the process's address space. */
+    if (!install_page (spte->upage, kpage, spte->writable)) 
+    {
+        frame_table_free_frame(kpage);
+        return false; 
+    }
+    return true;
 }
 
 

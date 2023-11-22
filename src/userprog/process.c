@@ -508,7 +508,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
 /* load() helpers. */
 
-static bool install_page (void *upage, void *kpage, bool writable);
 
 /* Checks whether PHDR describes a valid, loadable segment in
    FILE and returns true if so, false otherwise. */
@@ -586,27 +585,30 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-      /* Get a page of memory. */
-      struct ft_entry *fte = frame_table_get_frame(upage, PAL_USER);
-      uint8_t *kpage = fte->kpage;
+      // /* Get a page of memory. */
+      // struct ft_entry *fte = frame_table_get_frame(upage, PAL_USER);
+      // uint8_t *kpage = fte->kpage;
 
-      if (kpage == NULL)
-        return false;
+      // if (kpage == NULL)
+      //   return false;
 
-      /* Load this page. */
-      if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-        { 
-          frame_table_free_frame(kpage);
-          return false; 
-        }
-      memset (kpage + page_read_bytes, 0, page_zero_bytes);
+      // /* Load this page. */
+      // if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
+      //   { 
+      //     frame_table_free_frame(kpage);
+      //     return false; 
+      //   }
+      // memset (kpage + page_read_bytes, 0, page_zero_bytes);
 
-      /* Add the page to the process's address space. */
-      if (!install_page (upage, kpage, writable)) 
-        {
-          frame_table_free_frame(kpage);
-          return false; 
-        }
+      // /* Add the page to the process's address space. */
+      // if (!install_page (upage, kpage, writable)) 
+      //   {
+      //     frame_table_free_frame(kpage);
+      //     return false; 
+      //   }
+
+      struct spt_entry *spte = spt_entry_init(file, ofs, upage, page_read_bytes, page_zero_bytes, writable);
+      spt_page_insert(spte);
 
       /* Advance. */
       read_bytes -= page_read_bytes;
@@ -635,6 +637,10 @@ setup_stack (void **esp)
       else
         frame_table_free_frame(kpage);
     }
+  
+  struct spt_entry *spte = spt_entry_init_zero(fte->upage, true);
+  spt_page_insert(spte);
+
   return success;
 }
 
@@ -647,7 +653,7 @@ setup_stack (void **esp)
    with palloc_get_page().
    Returns true on success, false if UPAGE is already mapped or
    if memory allocation fails. */
-static bool
+bool
 install_page (void *upage, void *kpage, bool writable)
 {
   struct thread *t = thread_current ();
