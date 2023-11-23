@@ -61,7 +61,7 @@ frame_table_free_frame (uint8_t *kpage)
     free(fte);
 }
 
-struct ft_entry *
+static struct ft_entry *
 frame_table_find (uint8_t *kpage)
 {   
     ASSERT (lock_held_by_current_thread(&frame_lock));
@@ -114,15 +114,20 @@ frame_table_free_all_frames (void)
 
 void 
 frame_table_pin (uint8_t *kpage)
-{
+{   
+    lock_acquire(&frame_lock);
     struct ft_entry *fte = frame_table_find(kpage);
+    lock_release(&frame_lock);
     fte->pin = true;
 }
 
 void 
 frame_table_unpin (uint8_t *kpage)
-{
+{   
+    lock_acquire(&frame_lock);
     struct ft_entry *fte = frame_table_find(kpage);
+    lock_release(&frame_lock);
+
     fte->pin = false;
 }
 

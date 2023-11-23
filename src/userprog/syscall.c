@@ -148,15 +148,14 @@ void check_buffer_validation (void *buffer, unsigned size)
       exit(-1);
     }
 
-    struct ft_entry *fte = frame_table_get_frame(p, PAL_USER);
-    bool load = spt_load_data_to_page(spte, fte->kpage);
-
-    fte->pin = true;
-
-    if(!load)
+    if (!spte->is_loaded)
     {
-      exit(-1);
+      struct ft_entry *fte = frame_table_get_frame(p, PAL_USER);
+      bool load = spt_load_data_to_page(spte, fte->kpage);
+      if (!load)
+        exit(-1);
     }
+    frame_table_pin(spte->kpage);
   }
 }
 
@@ -175,15 +174,14 @@ void check_str_validation (void *str, unsigned size)
       exit(-1);
     }
 
-    struct ft_entry *fte = frame_table_get_frame(p, PAL_USER);
-    bool load = spt_load_data_to_page(spte, fte->kpage);
-
-    fte->pin = true;
-    
-    if(!load)
+    if (!spte->is_loaded)
     {
-      exit(-1);
+      struct ft_entry *fte = frame_table_get_frame(p, PAL_USER);
+      bool load = spt_load_data_to_page(spte, fte->kpage);
+      if (!load)
+        exit(-1);
     }
+    frame_table_pin(spte->kpage);
   }
 }
 
