@@ -8,6 +8,7 @@
 #include "vm/page.h"
 #include "vm/frame.h"
 #include "userprog/process.h"
+#include "userprog/pagedir.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -154,29 +155,26 @@ page_fault (struct intr_frame *f)
 
    bool load = false;
 
-   if (fault_addr == NULL || !is_user_vaddr(fault_addr))
+   if (fault_addr == NULL || !is_user_vaddr(fault_addr) || !not_present)
    {
       exit(-1);
    }
 
-   if (not_present)
-   {
-         struct spt_entry *spte = spt_search_page(fault_addr);
+   struct spt_entry *spte = spt_search_page(fault_addr);
 
-         if(spte != NULL)
-         {  
-            struct ft_entry *fte = frame_table_get_frame(fault_addr, PAL_USER);
-            load = spt_load_data_to_page(spte, fte->kpage);
-         }
-         else
-         {
-            exit(-1);
-         }
-
+   if(spte != NULL && !spte->is_loaded)
+   {  
+      struct ft_entry *fte = frame_table_get_frame(fault_addr, PAL_USER);
+      load = spt_load_data_to_page(spte, fte->kpage);
    }
-   else
+   
+   if (spte->is_loaded)
    {
-      exit(-1);
+      load = true;
+      if (!pagedir_get_page(thread_current()->pagedir, fault_addr))
+      {
+         exit(-1);
+      }
    }
 
    if (!load)

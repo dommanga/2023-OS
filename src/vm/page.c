@@ -107,6 +107,8 @@ spt_search_page (uint8_t *upage)
 bool 
 spt_load_data_to_page (struct spt_entry *spte, uint8_t *kpage)
 {   
+    ASSERT (spte->is_loaded == false);
+
     lock_acquire(&file_sys);
     file_seek(spte->backed_file, spte->offset);
 
@@ -118,8 +120,6 @@ spt_load_data_to_page (struct spt_entry *spte, uint8_t *kpage)
     }
     lock_release(&file_sys);
     memset (kpage + spte->page_read_bytes, 0, spte->page_zero_bytes);
-
-    spte->kpage = kpage;
     
     /* Add the page to the process's address space. */
     if (!install_page (spte->upage, kpage, spte->writable)) 
@@ -127,6 +127,9 @@ spt_load_data_to_page (struct spt_entry *spte, uint8_t *kpage)
         frame_table_free_frame(kpage);
         return false; 
     }
+    spte->kpage = kpage;
+    spte->is_loaded = true;
+
     return true;
 }
 

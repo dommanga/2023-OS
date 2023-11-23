@@ -630,18 +630,22 @@ setup_stack (void **esp)
   struct ft_entry *fte = frame_table_get_frame(((uint8_t *) PHYS_BASE) - PGSIZE, PAL_USER | PAL_ZERO);
   kpage = fte->kpage;
 
+  struct spt_entry *spte = spt_entry_init_zero(fte->upage, true);
+  spt_page_insert(spte);
+
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE;
+        {
+          *esp = PHYS_BASE;
+          spte->is_loaded = true;
+          spte->kpage = kpage;
+        }
       else
         frame_table_free_frame(kpage);
     }
   
-  struct spt_entry *spte = spt_entry_init_zero(fte->upage, true);
-  spt_page_insert(spte);
-
   return success;
 }
 
