@@ -2,6 +2,7 @@
 #include "threads/synch.h"
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
+#include "vm/page.h"
 
 //Global variable frame_table for eviction.
 struct list frame_table;
@@ -37,6 +38,7 @@ frame_table_get_frame (uint8_t *upage, enum palloc_flags flag)
     fte->kpage = kpage;
     fte->t = cur;
     fte->upage = upage;
+    fte->pin = false;
 
     lock_acquire(&frame_lock);
     list_push_back(&frame_table, &fte->frame_elem);
@@ -108,4 +110,29 @@ frame_table_free_all_frames (void)
         }
     }
 
+}
+
+void 
+frame_table_pin (uint8_t *kpage)
+{
+    struct ft_entry *fte = frame_table_find(kpage);
+    fte->pin = true;
+}
+
+void 
+frame_table_unpin (uint8_t *kpage)
+{
+    struct ft_entry *fte = frame_table_find(kpage);
+    fte->pin = false;
+}
+
+void 
+frame_table_unpin_all_frames (void *buffer, unsigned size)
+{   
+    void* p = pg_round_down(buffer);
+    for (p; p < buffer + size; p = pg_round_up((void *)(uintptr_t)p + 1))
+  { 
+    struct spt_entry *spte = spt_search_page(p);
+    frame_table_unpin(spte->kpage);
+  }
 }

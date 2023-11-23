@@ -11,6 +11,7 @@
 #include "filesys/file.h"
 #include "userprog/process.h"
 #include "vm/page.h"
+#include "vm/frame.h"
 
 //synchronization of file system
 struct lock file_sys;
@@ -146,6 +147,16 @@ void check_buffer_validation (void *buffer, unsigned size)
     {
       exit(-1);
     }
+
+    struct ft_entry *fte = frame_table_get_frame(p, PAL_USER);
+    bool load = spt_load_data_to_page(spte, fte->kpage);
+
+    fte->pin = true;
+
+    if(!load)
+    {
+      exit(-1);
+    }
   }
 }
 
@@ -160,6 +171,16 @@ void check_str_validation (void *str, unsigned size)
   { 
     struct spt_entry *spte = spt_search_page(p);
     if(spte == NULL)
+    {
+      exit(-1);
+    }
+
+    struct ft_entry *fte = frame_table_get_frame(p, PAL_USER);
+    bool load = spt_load_data_to_page(spte, fte->kpage);
+
+    fte->pin = true;
+    
+    if(!load)
     {
       exit(-1);
     }
@@ -284,7 +305,7 @@ int read (int fd, void *buffer, unsigned size)
     read_cnt = file_read(f, buffer, size);
     lock_release(&file_sys);
   }
-  
+  frame_table_unpin_all_frames(buffer, size);
   return read_cnt;
 }
 
@@ -311,7 +332,7 @@ int write (int fd, const void *buffer, unsigned size)
     written_size = file_write(f, buffer, size);  
     lock_release(&file_sys);
   }
-
+  frame_table_unpin_all_frames(buffer, size);
   return written_size;
 }
 
