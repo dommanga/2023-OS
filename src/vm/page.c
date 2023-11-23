@@ -60,6 +60,7 @@ spt_entry_init_zero (uint8_t *upage, bool writable)
 {
     struct spt_entry *spte = (struct spt_entry *)malloc(sizeof(struct spt_entry));
 
+    spte->is_loaded = false;
     spte->upage = upage;
     spte->writable = writable;
     spte->loc = ZERO;
