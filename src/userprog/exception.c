@@ -167,20 +167,24 @@ page_fault (struct intr_frame *f)
       struct ft_entry *fte = frame_table_get_frame(spte->upage, PAL_USER);
       load = spt_load_data_to_page(spte, fte->kpage);
    }
+   else
+   {
+      exit(-1);
+   }
    
-   if (spte->is_loaded)
-   {
-      load = true;
-      if (!pagedir_get_page(thread_current()->pagedir, fault_addr))
-      {
-         exit(-1);
-      }
-   }
+   // if (spte->is_loaded)
+   // {
+   //    load = true;
+   //    if (!pagedir_get_page(thread_current()->pagedir, fault_addr))
+   //    {
+   //       exit(-1);
+   //    }
+   // }
 
-   if (!load)
-   {
-         exit(-1);
-   }
+   // if (!load)
+   // {
+   //       exit(-1);
+   // }
 
 //   exit(-1);
 

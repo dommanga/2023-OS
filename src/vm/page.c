@@ -5,6 +5,7 @@
 #include "userprog/syscall.h"
 #include "userprog/process.h"
 #include "vm/frame.h"
+#include "userprog/pagedir.h"
 
 extern struct lock file_sys;
 
@@ -35,6 +36,7 @@ free_spte (struct hash_elem *e, void *aux UNUSED)
     if (spte->is_loaded)
     {
         frame_table_free_frame(spte->kpage);
+        pagedir_clear_page(thread_current()->pagedir, spte->upage);
     }
     free(spte);
 }
