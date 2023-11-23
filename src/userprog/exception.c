@@ -164,7 +164,7 @@ page_fault (struct intr_frame *f)
 
    if(spte != NULL && !spte->is_loaded)
    {  
-      struct ft_entry *fte = frame_table_get_frame(fault_addr, PAL_USER);
+      struct ft_entry *fte = frame_table_get_frame(spte->upage, PAL_USER);
       load = spt_load_data_to_page(spte, fte->kpage);
    }
    

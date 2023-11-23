@@ -53,6 +53,8 @@ spt_entry_init (struct file *file, off_t ofs, uint8_t *upage, uint32_t read_byte
     spte->page_zero_bytes = zero_bytes;
     spte->writable = writable;
     spte->loc = FILE; // not sure...
+
+    return spte;
 }
 
 struct spt_entry *
@@ -64,6 +66,8 @@ spt_entry_init_zero (uint8_t *upage, bool writable)
     spte->upage = upage;
     spte->writable = writable;
     spte->loc = ZERO;
+
+    return spte;
 }
 
 bool
