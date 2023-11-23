@@ -218,6 +218,7 @@ process_exit (void)
   file_close(cur->running_file);
   palloc_free_page(cur->fdt); //memory - leak
 
+  spt_destroy(&cur->spage_table);
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;

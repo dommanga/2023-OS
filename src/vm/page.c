@@ -4,6 +4,7 @@
 #include "filesys/file.h"
 #include "userprog/syscall.h"
 #include "userprog/process.h"
+#include "vm/frame.h"
 
 extern struct lock file_sys;
 
@@ -29,10 +30,13 @@ spt_destroy (struct hash *spt)
 void 
 free_spte (struct hash_elem *e, void *aux UNUSED)
 {   
-    //get spte
+    struct spt_entry *spte = hash_entry(e, struct spt_entry, spage_elem);
     //write back???
-    //spte is loaded (mapped with frame) => frame free
-    //spte itself free (free(spte))
+    if (spte->is_loaded)
+    {
+        frame_table_free_frame(spte->kpage);
+    }
+    free(spte);
 }
 
 //not complete - location
@@ -41,6 +45,7 @@ spt_entry_init (struct file *file, off_t ofs, uint8_t *upage, uint32_t read_byte
 {
     struct spt_entry *spte = (struct spt_entry *)malloc(sizeof(struct spt_entry));
 
+    spte->is_loaded = false;
     spte->backed_file = file;
     spte->offset = ofs;
     spte->upage = upage;

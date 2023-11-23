@@ -19,6 +19,8 @@ struct spt_entry
     uint8_t *kpage;
     enum location loc;
 
+    bool is_loaded;
+
     struct file *backed_file;
 
     off_t offset;
