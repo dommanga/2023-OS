@@ -19,7 +19,7 @@ struct lock file_sys;
 static void syscall_handler (struct intr_frame *);
 void get_arg (void *esp, int *arg, int count);
 void check_validation (void *p);
-void check_buffer_validation (void *buffer, unsigned size);
+void check_buffer_validation (void *esp, void *buffer, unsigned size);
 void check_str_validation (void *str, unsigned size);
 void halt (void);
 void exit (int status);
@@ -47,6 +47,7 @@ static void
 syscall_handler (struct intr_frame *f UNUSED) 
 { 
   check_validation(f->esp);
+  thread_current()->esp = f->esp;
   int syscall_num = *(uint32_t *)f->esp;
   int arg[5];
 
@@ -90,7 +91,7 @@ syscall_handler (struct intr_frame *f UNUSED)
   case SYS_READ:
     get_arg(f->esp, arg, 3);
     // check_validation((void *)arg[1]);
-    check_buffer_validation((void *)arg[1], (unsigned int)arg[2]);
+    check_buffer_validation(f->esp, (void *)arg[1], (unsigned int)arg[2]);
     f->eax = read((int)arg[0], (void *)arg[1], (unsigned int)arg[2]);
     break;
   case SYS_WRITE:
@@ -133,7 +134,7 @@ void check_validation (void *p)
     exit(-1);
 }
 
-void check_buffer_validation (void *buffer, unsigned size)
+void check_buffer_validation (void *esp, void *buffer, unsigned size)
 {
   if (buffer == NULL || is_kernel_vaddr(buffer))
     exit(-1);
@@ -143,18 +144,28 @@ void check_buffer_validation (void *buffer, unsigned size)
   for (p; p < buffer + size; p = pg_round_up((void *)(uintptr_t)p + 1))
   { 
     struct spt_entry *spte = spt_search_page(p);
-    if(spte == NULL || !spte->writable)
-    {
-      exit(-1);
-    }
 
-    if (!spte->is_loaded)
-    {
+    if (spte != NULL && !spte->is_loaded)
+    { 
       struct ft_entry *fte = frame_table_get_frame(p, PAL_USER);
       bool load = spt_load_data_to_page(spte, fte->kpage);
       if (!load)
         exit(-1);
     }
+    else if(stack_access(esp, p))
+    {
+      if(!grow_stack(p))
+      { 
+        exit(-1);
+      }
+      spte = spt_search_page(p);
+    }
+    else if (spte == NULL)
+    {
+      exit(-1);
+    }
+    ASSERT (spte != NULL);
+
     frame_table_pin(spte->kpage);
   }
 }

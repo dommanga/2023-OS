@@ -167,8 +167,17 @@ page_fault (struct intr_frame *f)
       struct ft_entry *fte = frame_table_get_frame(spte->upage, PAL_USER);
       load = spt_load_data_to_page(spte, fte->kpage);
    }
+   else if(stack_access(f->esp, fault_addr))
+   {  
+      load = grow_stack((uint8_t *) fault_addr);
+   }
    else
-   {
+   {  
+      exit(-1);
+   }
+
+   if (!load)
+   {  
       exit(-1);
    }
    

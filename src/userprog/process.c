@@ -644,12 +644,62 @@ setup_stack (void **esp)
           spte->kpage = kpage;
         }
       else
-        frame_table_free_frame(kpage);
+        {
+          frame_table_free_frame(kpage);
+          free(spte);
+        }
     }
   
   return success;
 }
 
+//need to revise
+bool 
+grow_stack (uint8_t *addr)
+{
+  uint8_t *kpage;
+  bool success = false;
+    
+  if (addr <= (uint8_t *) PHYS_BASE - STACK_GROW_MAX)
+  {
+    return success;
+  }
+  uint8_t *upage_num = pg_round_down(addr);
+
+  struct ft_entry *fte = frame_table_get_frame(upage_num, PAL_USER | PAL_ZERO);
+  kpage = fte->kpage;
+
+  struct spt_entry *spte = spt_entry_init_zero(fte->upage, true);
+  spt_page_insert(spte);
+
+  if (kpage != NULL) 
+    {
+      success = install_page (upage_num, kpage, true);
+      if (success)
+        {
+          spte->is_loaded = true;
+          spte->kpage = kpage;
+        }
+      else
+        {
+          frame_table_free_frame(kpage);
+          free(spte);
+        }
+    }
+  return success;
+}
+
+bool 
+stack_access (void *esp, void *fault_addr)
+{  
+  if (is_kernel_vaddr(esp))
+    esp = thread_current()->esp;
+
+  if (esp < PHYS_BASE && ((esp - STACK_PUSHA) <= fault_addr))
+    return true;
+  else
+    return false;
+}
 /* Adds a mapping from user virtual address UPAGE to kernel
    virtual address KPAGE to the page table.
    If WRITABLE is true, the user process may modify the page;

@@ -121,6 +121,8 @@ struct thread
 
     struct file *running_file;
 
+    void *esp;
+
     struct hash spage_table;
 
     unsigned magic;                     /* Detects stack overflow. */
