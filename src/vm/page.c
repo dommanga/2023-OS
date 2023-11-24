@@ -12,6 +12,8 @@ extern struct lock file_sys;
 void free_spte (struct hash_elem *e, void *aux UNUSED);
 unsigned page_hash (const struct hash_elem *p_, void *aux UNUSED);
 bool page_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED);
+unsigned mmap_hash (const struct hash_elem *p_, void *aux UNUSED);
+bool mmap_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED);
 
 
 void 
@@ -140,7 +142,12 @@ spt_load_data_to_page (struct spt_entry *spte, uint8_t *kpage)
     return true;
 }
 
-
+void 
+mmapt_init (void)
+{   
+    struct thread *cur = thread_current();
+    hash_init(&cur->mmap_table, mmap_hash, mmap_less, NULL);
+}
 
 //Return hash value corresponding to p.
 unsigned
@@ -158,4 +165,20 @@ page_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNU
     const struct spt_entry *b = hash_entry(b_, struct spt_entry, spage_elem);
 
     return a->upage < b->upage;
+}
+
+unsigned
+mmap_hash (const struct hash_elem *p_, void *aux UNUSED)
+{
+    const struct mmapt_entry *p = hash_entry(p_, struct mmapt_entry, mmap_elem);
+    return hash_bytes(&p->mapid, sizeof p->mapid);
+}
+
+bool
+mmap_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED)
+{
+    const struct mmapt_entry *a = hash_entry(a_, struct mmapt_entry, mmap_elem);
+    const struct mmapt_entry *b = hash_entry(b_, struct mmapt_entry, mmap_elem);
+
+    return a->mapid < b->mapid;
 }

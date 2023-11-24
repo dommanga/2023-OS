@@ -124,6 +124,7 @@ struct thread
     void *esp;
 
     struct hash spage_table;
+    struct hash mmap_table;
 
     unsigned magic;                     /* Detects stack overflow. */
   };

@@ -4,6 +4,7 @@
 #include "filesys/off_t.h"
 
 typedef struct supplemental_page_table_entry spt_entry;
+typedef struct mmap_table_entry mmapt_entry;
 
 enum location
 {
@@ -31,6 +32,15 @@ struct spt_entry
     struct hash_elem spage_elem;
 };
 
+struct mmapt_entry
+{
+    int mapid;
+    struct file *file;
+    uint8_t *mpage;
+    uint32_t content_size;
+    struct hash_elem mmap_elem;
+};
+
 void spt_init(void);
 void spt_destroy(struct hash *spt);
 struct spt_entry *spt_entry_init(struct file *file, off_t ofs, uint8_t *upage, uint32_t read_bytes, uint32_t zero_bytes, bool writable);
@@ -39,3 +49,5 @@ bool spt_page_insert(struct spt_entry *fte);
 bool spt_page_delete(struct spt_entry *fte);
 struct spt_entry *spt_search_page(uint8_t *upage);
 bool spt_load_data_to_page(struct spt_entry *spte, uint8_t *kpage);
+
+void mmapt_init (void);

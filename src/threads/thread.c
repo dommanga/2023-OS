@@ -12,6 +12,7 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "vm/frame.h"
+#include "vm/page.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -515,6 +516,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->load_success = false;
   list_push_back(&running_thread()->child_list, &t->child_elem);
   t->parent = running_thread();
+
+  mmapt_init();
 
   t->magic = THREAD_MAGIC;
 
