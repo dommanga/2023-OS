@@ -146,10 +146,9 @@ spt_load_data_to_page (struct spt_entry *spte, uint8_t *kpage)
 }
 
 void 
-mmapt_init (void)
+mmapt_init (struct thread *t)
 {   
-    struct thread *cur = thread_current();
-    hash_init(&cur->mmap_table, mmap_hash, mmap_less, NULL);
+    hash_init(&t->mmap_table, mmap_hash, mmap_less, NULL);
 }
 
 mapid_t

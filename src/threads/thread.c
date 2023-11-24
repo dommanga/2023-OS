@@ -210,6 +210,8 @@ thread_create (const char *name, int priority,
   t->fdt[FD_STDIN] = 1;
   t->fdt[FD_STDOUT] = 2;
 
+  mmapt_init(t);
+
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -517,7 +519,6 @@ init_thread (struct thread *t, const char *name, int priority)
   list_push_back(&running_thread()->child_list, &t->child_elem);
   t->parent = running_thread();
 
-  mmapt_init();
   t->cur_mapid = 0;
 
   t->magic = THREAD_MAGIC;
