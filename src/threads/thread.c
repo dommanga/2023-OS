@@ -519,8 +519,6 @@ init_thread (struct thread *t, const char *name, int priority)
   list_push_back(&running_thread()->child_list, &t->child_elem);
   t->parent = running_thread();
 
-  t->cur_mapid = 0;
-
   t->magic = THREAD_MAGIC;
 
   old_level = intr_disable ();

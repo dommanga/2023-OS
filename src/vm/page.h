@@ -2,6 +2,7 @@
 #include "threads/thread.h"
 #include <stddef.h>
 #include "filesys/off_t.h"
+#include "lib/user/syscall.h"
 
 typedef struct supplemental_page_table_entry spt_entry;
 typedef struct mmap_table_entry mmapt_entry;
@@ -51,6 +52,6 @@ struct spt_entry *spt_search_page(uint8_t *upage);
 bool spt_load_data_to_page(struct spt_entry *spte, uint8_t *kpage);
 
 void mmapt_init(struct thread *t);
-mapid_t mmapt_mapping_insert(struct file *f, uint8_t *start_page);
+mapid_t mmapt_mapping_insert(struct file *f, int fd, uint8_t *start_page);
 void mmapt_mapping_delete(mapid_t mapid);
 struct mmapt_entry *mmapt_search_mapping(mapid_t mapid);

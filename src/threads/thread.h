@@ -19,7 +19,7 @@ enum thread_status
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
-typedef int mapid_t;
+
 #define TID_ERROR ((tid_t) -1)          /* Error value for tid_t. */
 
 /* Thread priorities. */
@@ -126,7 +126,6 @@ struct thread
 
     struct hash spage_table;
     struct hash mmap_table;
-    mapid_t cur_mapid;
 
     unsigned magic;                     /* Detects stack overflow. */
   };

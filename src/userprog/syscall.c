@@ -116,7 +116,7 @@ syscall_handler (struct intr_frame *f UNUSED)
   case SYS_MMAP:
     get_arg(f->esp, arg, 2);
     //check validation for what? buffer? string? or normal?
-    mmap ((int)arg[0], (void *)arg[1]);
+    f->eax = mmap ((int)arg[0], (void *)arg[1]);
     break;
   case SYS_MUNMAP:
     get_arg(f->esp, arg, 1);
@@ -169,6 +169,10 @@ void check_buffer_validation (void *esp, void *buffer, unsigned size)
         exit(-1);
       }
       spte = spt_search_page(p);
+    }
+    else if (!spte->writable)
+    {
+      exit(-1);
     }
     else if (spte == NULL)
     {
@@ -386,17 +390,19 @@ void close (int fd)
 }
 
 mapid_t mmap (int fd, void *addr)
-{   
+{
+  if (!is_user_vaddr(addr))
+    return MAP_FAILED;
   if ( addr == 0x0 || addr == NULL || pg_ofs(addr) != 0)
-    return -1;
+    return MAP_FAILED;
 
   if (fd == FD_STDIN || fd == FD_STDOUT)
-    return -1;
+    return MAP_FAILED;
   
   struct file *f = process_get_file(fd);
 
   if (f == NULL)
-    return -1;
+    return MAP_FAILED;
 
   lock_acquire(&file_sys);
   struct file *reopened = file_reopen(f);
@@ -404,7 +410,7 @@ mapid_t mmap (int fd, void *addr)
   if (reopened == NULL)
     { 
       lock_release(&file_sys);
-      return -1;
+      return MAP_FAILED;
     }
 
   int32_t file_len = file_length(reopened);
@@ -412,25 +418,25 @@ mapid_t mmap (int fd, void *addr)
   if ((int)file_len <= 0)
   { 
     lock_release(&file_sys);
-    return -1;
+    return MAP_FAILED;
   }
   lock_release(&file_sys);
 
   uint8_t *address = (uint8_t *)addr;
   off_t offset = 0;
   for(offset; offset < file_len; offset += PGSIZE)
-  {
-    if(spt_search_page(address + offset))
+  { 
+      if(spt_search_page(address + offset))
     {
-      return -1;
+      return MAP_FAILED;
     }
     if(pagedir_get_page(thread_current()->pagedir, address + offset))
     {
-      return -1;
+      return MAP_FAILED;
     }
   }
     
-  return mmapt_mapping_insert(reopened, address);
+  return mmapt_mapping_insert(reopened, fd, address);
 }
 
 void munmap (mapid_t mapid)

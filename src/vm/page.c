@@ -152,16 +152,16 @@ mmapt_init (struct thread *t)
 }
 
 mapid_t
-mmapt_mapping_insert(struct file *f, uint8_t *start_page)
+mmapt_mapping_insert(struct file *f, int fd, uint8_t *start_page)
 {   
+    ASSERT (f != NULL);
     struct thread *cur = thread_current();
 
     struct mmapt_entry *mapping = (struct mmapt_entry *)malloc(sizeof(struct mmapt_entry));
     if(mapping == NULL)
         return -1;
     
-    mapping->mapid = cur->cur_mapid;
-    cur->cur_mapid++;
+    mapping->mapid = fd;
     mapping->file = f;
     mapping->mpage = start_page;
     lock_acquire(&file_sys);
@@ -170,7 +170,7 @@ mmapt_mapping_insert(struct file *f, uint8_t *start_page)
     
     if (hash_insert(&cur->mmap_table, &mapping->mmap_elem))
         return -1;
-    
+
     uint32_t read_len = mapping->content_size;
     off_t ofs = 0;
     uint8_t *upage = mapping->mpage;
@@ -183,6 +183,8 @@ mmapt_mapping_insert(struct file *f, uint8_t *start_page)
 
       struct spt_entry *spte = spt_entry_init(f, ofs, upage, page_read_bytes, page_zero_bytes, true);
       spt_page_insert(spte);
+
+      ASSERT (spte != NULL);
 
       /* Advance. */
       read_len -= page_read_bytes;
@@ -198,9 +200,11 @@ mmapt_mapping_delete (mapid_t mapid)
 {   
     struct thread *cur = thread_current();
     struct mmapt_entry *mapping = mmapt_search_mapping(mapid);
-    
-    hash_delete(&cur->mmap_table, &mapping->mmap_elem);
 
+    if (mapping == NULL)
+        return;
+
+    hash_delete(&cur->mmap_table, &mapping->mmap_elem);
 
     off_t ofs = 0;
     uint8_t *upage = mapping->mpage;
@@ -218,6 +222,7 @@ mmapt_mapping_delete (mapid_t mapid)
                 file_write(spte->backed_file, (void *)spte->upage, spte->page_read_bytes);
                 lock_release(&file_sys);
             }
+            pagedir_clear_page(cur->pagedir, spte->upage);
             spt_page_delete(spte);
         }
 
@@ -229,7 +234,7 @@ mmapt_mapping_delete (mapid_t mapid)
     lock_acquire(&file_sys);
     file_close(mapping->file);
     lock_release(&file_sys);
-
+    
     free(mapping);
 }
 
