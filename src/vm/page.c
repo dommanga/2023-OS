@@ -91,7 +91,10 @@ spt_page_delete (struct spt_entry *spte)
     struct thread *cur = thread_current();
     
     if (hash_delete(&cur->spage_table, &spte->spage_elem))
-        return true;
+        {   
+            free(spte);
+            return true;
+        }
     else
         return false;
 }
@@ -189,6 +192,63 @@ mmapt_mapping_insert(struct file *f, uint8_t *start_page)
     }
     
     return mapping->mapid;
+}
+
+void 
+mmapt_mapping_delete (mapid_t mapid)
+{   
+    struct thread *cur = thread_current();
+    struct mmapt_entry *mapping = mmapt_search_mapping(mapid);
+    
+    hash_delete(&cur->mmap_table, &mapping->mmap_elem);
+
+
+    off_t ofs = 0;
+    uint8_t *upage = mapping->mpage;
+
+    while (ofs < mapping->content_size)
+    {
+        struct spt_entry *spte = spt_search_page(upage);
+        if (spte != NULL)
+        {
+            if (pagedir_is_dirty(cur->pagedir, spte->upage))
+            {   
+                //write back
+                lock_acquire(&file_sys);
+                file_seek (spte->backed_file, spte->offset);
+                file_write(spte->backed_file, (void *)spte->upage, spte->page_read_bytes);
+                lock_release(&file_sys);
+            }
+            spt_page_delete(spte);
+        }
+
+        /* Advance. */
+        upage += PGSIZE;
+        ofs += PGSIZE;
+    }
+    
+    lock_acquire(&file_sys);
+    file_close(mapping->file);
+    lock_release(&file_sys);
+
+    free(mapping);
+}
+
+struct mmapt_entry *
+mmapt_search_mapping(mapid_t mapid)
+{
+    struct thread *cur = thread_current();
+
+    struct mmapt_entry *mapping = (struct mmapt_entry *)malloc(sizeof(struct mmapt_entry));
+    mapping->mapid = mapid;
+
+    struct hash_elem *e = hash_find(&cur->mmap_table, &mapping->mmap_elem);
+
+    free(mapping);
+
+    if (!e)
+        return NULL;
+    return hash_entry(e, struct mmapt_entry, mmap_elem);
 }
 
 //Return hash value corresponding to p.

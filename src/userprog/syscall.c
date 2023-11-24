@@ -435,5 +435,5 @@ mapid_t mmap (int fd, void *addr)
 
 void munmap (mapid_t mapid)
 {
-
+  mmapt_mapping_delete (mapid);
 }
