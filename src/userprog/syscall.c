@@ -34,7 +34,8 @@ int write (int fd, const void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
-
+mapid_t mmap (int fd, void *addr);
+void munmap (mapid_t mapid);
 
 void
 syscall_init (void) 
@@ -111,6 +112,15 @@ syscall_handler (struct intr_frame *f UNUSED)
   case SYS_CLOSE:
     get_arg(f->esp, arg, 1);
     close((int)arg[0]);
+    break;
+  case SYS_MMAP:
+    get_arg(f->esp, arg, 2);
+    //check validation for what? buffer? string? or normal?
+    mmap ((int)arg[0], (void *)arg[1]);
+    break;
+  case SYS_MUNMAP:
+    get_arg(f->esp, arg, 1);
+    munmap ((mapid_t) arg[0]);
     break;
  } 
 }
@@ -373,4 +383,57 @@ void close (int fd)
   lock_acquire(&file_sys);
   process_close_file(fd);
   lock_release(&file_sys);
+}
+
+mapid_t mmap (int fd, void *addr)
+{   
+  if ( addr == 0x0 || addr == NULL || pg_ofs(addr) != 0)
+    return -1;
+
+  if (fd == FD_STDIN || fd == FD_STDOUT)
+    return -1;
+  
+  struct file *f = process_get_file(fd);
+
+  if (f == NULL)
+    return -1;
+
+  lock_acquire(&file_sys);
+  struct file *reopened = file_reopen(f);
+
+  if (reopened == NULL)
+    { 
+      lock_release(&file_sys);
+      return -1;
+    }
+
+  int32_t file_len = file_length(reopened);
+
+  if ((int)file_len <= 0)
+  { 
+    lock_release(&file_sys);
+    return -1;
+  }
+  lock_release(&file_sys);
+
+  uint8_t *address = (uint8_t *)addr;
+  off_t offset = 0;
+  for(offset; offset < file_len; offset += PGSIZE)
+  {
+    if(spt_search_page(address + offset))
+    {
+      return -1;
+    }
+    if(pagedir_get_page(thread_current()->pagedir, address + offset))
+    {
+      return -1;
+    }
+  }
+    
+  return mmapt_mapping_insert(reopened, address);
+}
+
+void munmap (mapid_t mapid)
+{
+
 }

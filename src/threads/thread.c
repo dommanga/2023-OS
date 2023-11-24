@@ -518,6 +518,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->parent = running_thread();
 
   mmapt_init();
+  t->cur_mapid = 0;
 
   t->magic = THREAD_MAGIC;
 

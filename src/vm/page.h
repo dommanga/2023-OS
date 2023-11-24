@@ -34,7 +34,7 @@ struct spt_entry
 
 struct mmapt_entry
 {
-    int mapid;
+    mapid_t mapid;
     struct file *file;
     uint8_t *mpage;
     uint32_t content_size;
@@ -45,9 +45,12 @@ void spt_init(void);
 void spt_destroy(struct hash *spt);
 struct spt_entry *spt_entry_init(struct file *file, off_t ofs, uint8_t *upage, uint32_t read_bytes, uint32_t zero_bytes, bool writable);
 struct spt_entry *spt_entry_init_zero(uint8_t *upage, bool writable);
-bool spt_page_insert(struct spt_entry *fte);
-bool spt_page_delete(struct spt_entry *fte);
+bool spt_page_insert(struct spt_entry *spte);
+bool spt_page_delete(struct spt_entry *spte);
 struct spt_entry *spt_search_page(uint8_t *upage);
 bool spt_load_data_to_page(struct spt_entry *spte, uint8_t *kpage);
 
-void mmapt_init (void);
+void mmapt_init(void);
+mapid_t mmapt_mapping_insert(struct file *f, uint8_t *start_page);
+bool mmapt_mapping_delete(mapid_t mapid);
+struct mmapt_entry *mmapt_search_mapping(mapid_t mapid);

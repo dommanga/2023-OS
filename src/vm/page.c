@@ -149,6 +149,48 @@ mmapt_init (void)
     hash_init(&cur->mmap_table, mmap_hash, mmap_less, NULL);
 }
 
+mapid_t
+mmapt_mapping_insert(struct file *f, uint8_t *start_page)
+{   
+    struct thread *cur = thread_current();
+
+    struct mmapt_entry *mapping = (struct mmapt_entry *)malloc(sizeof(struct mmapt_entry));
+    if(mapping == NULL)
+        return -1;
+    
+    mapping->mapid = cur->cur_mapid;
+    cur->cur_mapid++;
+    mapping->file = f;
+    mapping->mpage = start_page;
+    lock_acquire(&file_sys);
+    mapping->content_size = file_length(f);
+    lock_release(&file_sys);
+    
+    if (hash_insert(&cur->mmap_table, &mapping->mmap_elem))
+        return -1;
+    
+    uint32_t read_len = mapping->content_size;
+    off_t ofs = 0;
+    uint8_t *upage = mapping->mpage;
+    file_seek (f, ofs);
+
+    while (ofs < mapping->content_size) 
+    {
+      size_t page_read_bytes = read_len < PGSIZE ? read_len : PGSIZE;
+      size_t page_zero_bytes = PGSIZE - page_read_bytes;
+
+      struct spt_entry *spte = spt_entry_init(f, ofs, upage, page_read_bytes, page_zero_bytes, true);
+      spt_page_insert(spte);
+
+      /* Advance. */
+      read_len -= page_read_bytes;
+      upage += PGSIZE;
+      ofs += PGSIZE;
+    }
+    
+    return mapping->mapid;
+}
+
 //Return hash value corresponding to p.
 unsigned
 page_hash (const struct hash_elem *p_, void *aux UNUSED)
@@ -171,7 +213,7 @@ unsigned
 mmap_hash (const struct hash_elem *p_, void *aux UNUSED)
 {
     const struct mmapt_entry *p = hash_entry(p_, struct mmapt_entry, mmap_elem);
-    return hash_bytes(&p->mapid, sizeof p->mapid);
+    return hash_int(p->mapid);
 }
 
 bool
