@@ -4,12 +4,15 @@
 #include "threads/vaddr.h"
 #include "vm/page.h"
 #include "userprog/pagedir.h"
+#include "vm/swap.h"
 
 //Global variable frame_table for eviction.
 struct list frame_table;
 
 //Thread must acquire lock for frame_table when it approach.
 struct lock frame_lock;
+
+extern struct lock file_sys;
 
 //Initialize frame table and frame lock.
 void 
@@ -62,7 +65,7 @@ frame_table_free_frame (uint8_t *kpage)
     free(fte);
 }
 
-static struct ft_entry *
+struct ft_entry *
 frame_table_find (uint8_t *kpage)
 {   
     ASSERT (lock_held_by_current_thread(&frame_lock));
@@ -96,18 +99,42 @@ find_victim (void)
             pagedir_set_accessed(t->pagedir, fte->upage, false);
         }
         else
-        {
+        {   
+            if (fte->pin)
+                continue;
             return fte;
         }
     }
     return NULL;
 }
 
-//not yet
 void 
 evict_victim (struct ft_entry *fte)
-{
-    //swap out (fte)
+{   
+    struct thread *t = fte->t;
+    struct spt_entry *spte = spt_search_page(fte->upage);
+    
+    if (spte->loc == FILE) //mmapped
+    {
+        if (pagedir_is_dirty(t->pagedir, spte->upage))
+        {
+            //write back
+            lock_acquire(&file_sys);
+            file_seek (spte->backed_file, spte->offset);
+            file_write(spte->backed_file, (void *)spte->upage, spte->page_read_bytes);
+            lock_release(&file_sys);
+        }
+    }
+    else //BIN or ZERO
+    {   
+        spte->loc = SWAP;
+        spte->swap_idx = swap_out(fte->kpage);
+    }
+
+    spte->is_loaded = false;
+    pagedir_clear_page(t->pagedir, spte->upage);
+
+    frame_table_free_frame(fte);
 }
 
 //free all frames held by current thread.

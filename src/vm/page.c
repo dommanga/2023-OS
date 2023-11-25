@@ -46,7 +46,7 @@ free_spte (struct hash_elem *e, void *aux UNUSED)
 
 //not complete - location
 struct spt_entry *
-spt_entry_init (struct file *file, off_t ofs, uint8_t *upage, uint32_t read_bytes, uint32_t zero_bytes, bool writable)
+spt_entry_init (struct file *file, off_t ofs, uint8_t *upage, uint32_t read_bytes, uint32_t zero_bytes, bool writable, enum location loc)
 {
     struct spt_entry *spte = (struct spt_entry *)malloc(sizeof(struct spt_entry));
 
@@ -57,7 +57,7 @@ spt_entry_init (struct file *file, off_t ofs, uint8_t *upage, uint32_t read_byte
     spte->page_read_bytes = read_bytes;
     spte->page_zero_bytes = zero_bytes;
     spte->writable = writable;
-    spte->loc = FILE; // not sure...
+    spte->loc = loc;
 
     return spte;
 }
@@ -200,7 +200,7 @@ mmapt_mapping_insert(struct file *f, int fd, uint8_t *start_page)
       size_t page_read_bytes = read_len < PGSIZE ? read_len : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-      struct spt_entry *spte = spt_entry_init(f, ofs, upage, page_read_bytes, page_zero_bytes, true);
+      struct spt_entry *spte = spt_entry_init(f, ofs, upage, page_read_bytes, page_zero_bytes, true, FILE);
       spt_page_insert(spte);
 
       ASSERT (spte != NULL);

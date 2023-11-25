@@ -8,10 +8,11 @@ typedef struct supplemental_page_table_entry spt_entry;
 typedef struct mmap_table_entry mmapt_entry;
 
 enum location
-{
+{   
+    BIN,
     FILE,
     SWAP,
-    ZERO
+    ZERO    
 };
 
 // spage table entry structure.
@@ -20,6 +21,7 @@ struct spt_entry
     uint8_t *upage;
     uint8_t *kpage;
     enum location loc;
+    size_t swap_idx;
 
     bool is_loaded;
 
@@ -44,7 +46,7 @@ struct mmapt_entry
 
 void spt_init(void);
 void spt_destroy(struct hash *spt);
-struct spt_entry *spt_entry_init(struct file *file, off_t ofs, uint8_t *upage, uint32_t read_bytes, uint32_t zero_bytes, bool writable);
+struct spt_entry *spt_entry_init (struct file *file, off_t ofs, uint8_t *upage, uint32_t read_bytes, uint32_t zero_bytes, bool writable, enum location loc);
 struct spt_entry *spt_entry_init_zero(uint8_t *upage, bool writable);
 bool spt_page_insert(struct spt_entry *spte);
 bool spt_page_delete(struct spt_entry *spte);

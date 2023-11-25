@@ -610,7 +610,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       //     return false; 
       //   }
 
-      struct spt_entry *spte = spt_entry_init(file, ofs, upage, page_read_bytes, page_zero_bytes, writable);
+      struct spt_entry *spte = spt_entry_init(file, ofs, upage, page_read_bytes, page_zero_bytes, writable, BIN);
       spt_page_insert(spte);
 
       /* Advance. */
