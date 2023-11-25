@@ -10,6 +10,7 @@
 extern struct lock file_sys;
 
 void free_spte (struct hash_elem *e, void *aux UNUSED);
+void free_mapping (struct hash_elem *e, void *aux UNUSED);
 unsigned page_hash (const struct hash_elem *p_, void *aux UNUSED);
 bool page_less (const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED);
 unsigned mmap_hash (const struct hash_elem *p_, void *aux UNUSED);
@@ -89,7 +90,7 @@ bool
 spt_page_delete (struct spt_entry *spte)
 {   
     struct thread *cur = thread_current();
-    
+
     if (hash_delete(&cur->spage_table, &spte->spage_elem))
         {   
             free(spte);
@@ -151,6 +152,20 @@ mmapt_init (struct thread *t)
     hash_init(&t->mmap_table, mmap_hash, mmap_less, NULL);
 }
 
+void 
+mmapt_destroy(struct hash *mmapt)
+{   
+    hash_destroy(mmapt, free_mapping);
+}
+
+void 
+free_mapping (struct hash_elem *e, void *aux UNUSED)
+{   
+    struct mmapt_entry *mapping = hash_entry(e, struct mmapt_entry, mmap_elem);
+
+    mmapt_mapping_delete(mapping);
+}
+
 mapid_t
 mmapt_mapping_insert(struct file *f, int fd, uint8_t *start_page)
 {   
@@ -167,14 +182,18 @@ mmapt_mapping_insert(struct file *f, int fd, uint8_t *start_page)
     lock_acquire(&file_sys);
     mapping->content_size = file_length(f);
     lock_release(&file_sys);
-    
+
     if (hash_insert(&cur->mmap_table, &mapping->mmap_elem))
         return -1;
+
+    struct mmapt_entry *mappings = mmapt_search_mapping(fd);
 
     uint32_t read_len = mapping->content_size;
     off_t ofs = 0;
     uint8_t *upage = mapping->mpage;
+    lock_acquire(&file_sys);
     file_seek (f, ofs);
+    lock_release(&file_sys);
 
     while (ofs < mapping->content_size) 
     {
@@ -196,7 +215,7 @@ mmapt_mapping_insert(struct file *f, int fd, uint8_t *start_page)
 }
 
 void 
-mmapt_mapping_delete (mapid_t mapid)
+mmapt_mapid_delete (mapid_t mapid)
 {   
     struct thread *cur = thread_current();
     struct mmapt_entry *mapping = mmapt_search_mapping(mapid);
@@ -206,13 +225,21 @@ mmapt_mapping_delete (mapid_t mapid)
 
     hash_delete(&cur->mmap_table, &mapping->mmap_elem);
 
+    mmapt_mapping_delete(mapping);
+}
+
+void
+mmapt_mapping_delete (struct mmapt_entry *mapping)
+{   
+    struct thread *cur = thread_current();
+
     off_t ofs = 0;
     uint8_t *upage = mapping->mpage;
 
     while (ofs < mapping->content_size)
     {
         struct spt_entry *spte = spt_search_page(upage);
-        if (spte != NULL)
+        if (spte != NULL && spte->is_loaded)
         {
             if (pagedir_is_dirty(cur->pagedir, spte->upage))
             {   
