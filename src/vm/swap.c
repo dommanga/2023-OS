@@ -34,12 +34,15 @@ swap_out (uint8_t *kpage)
     struct ft_entry *fte = frame_table_find(kpage);
     lock_release(&frame_lock);
 
-    struct spt_entry *spte = spt_search_page(fte->upage);
-
     lock_acquire(&swap_table);
-    size_t ret = bitmap_scan_and_flip(swap_table, 0, 1, false);
-    block_write(swap_block, ret * SECTORS_PER_PAGE, spte->upage); //need to check
+    size_t saved_idx = bitmap_scan_and_flip(swap_table, 0, 1, false);
+
+    for (block_sector_t idx = 0; idx < SECTORS_PER_PAGE; idx++)
+    {
+        block_write(swap_block, saved_idx * SECTORS_PER_PAGE + idx, fte->upage + idx * BLOCK_SECTOR_SIZE);
+    }
+    
     lock_release(&swap_table);
 
-    return ret;
+    return saved_idx;
 }
