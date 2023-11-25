@@ -3,6 +3,7 @@
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
 #include "vm/page.h"
+#include "userprog/pagedir.h"
 
 //Global variable frame_table for eviction.
 struct list frame_table;
@@ -83,7 +84,22 @@ frame_table_find (uint8_t *kpage)
 //not yet
 struct ft_entry *
 find_victim (void)
-{
+{   
+    //do I need to start at first? or other location?
+    for (struct list_elem *e = list_begin(&frame_table); e != list_end(&frame_table); e = list_next(e))
+    {
+        struct ft_entry *fte = list_entry(e, struct ft_entry, frame_elem);
+        struct thread *t = fte->t;
+
+        if(pagedir_is_accessed(t->pagedir, fte->upage))
+        {
+            pagedir_set_accessed(t->pagedir, fte->upage, false);
+        }
+        else
+        {
+            return fte;
+        }
+    }
     return NULL;
 }
 
@@ -91,7 +107,7 @@ find_victim (void)
 void 
 evict_victim (struct ft_entry *fte)
 {
-
+    //swap out (fte)
 }
 
 //free all frames held by current thread.
