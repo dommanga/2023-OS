@@ -9,6 +9,7 @@
 #include "vm/frame.h"
 #include "userprog/process.h"
 #include "userprog/pagedir.h"
+#include "vm/swap.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -165,7 +166,21 @@ page_fault (struct intr_frame *f)
    if(spte != NULL && !spte->is_loaded)
    {  
       struct ft_entry *fte = frame_table_get_frame(spte->upage, PAL_USER);
-      load = spt_load_data_to_page(spte, fte->kpage);
+      switch (spte->loc)
+      {
+         case BIN:
+            load = spt_load_data_to_page(spte, fte->kpage);
+            spte->loc = ON_FRAME;
+            break;
+         case FILE:
+            load = spt_load_data_to_page(spte, fte->kpage);
+            break;
+         case SWAP:
+            swap_in(spte->swap_idx, fte->kpage);
+            spte->loc = ON_FRAME;
+            load = spte->is_loaded;
+            break;
+      }
    }
    else if(stack_access(f->esp, fault_addr))
    {  

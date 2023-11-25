@@ -125,7 +125,7 @@ evict_victim (struct ft_entry *fte)
             lock_release(&file_sys);
         }
     }
-    else //BIN or ZERO
+    else //ON_FRAME
     {   
         spte->loc = SWAP;
         spte->swap_idx = swap_out(fte->kpage);

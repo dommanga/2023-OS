@@ -12,7 +12,7 @@ enum location
     BIN,
     FILE,
     SWAP,
-    ZERO    
+    ON_FRAME    
 };
 
 // spage table entry structure.

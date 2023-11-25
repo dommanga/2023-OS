@@ -21,10 +21,26 @@ swap_table_init (size_t block_size)
     lock_init(&swap_lock);
 }
 
-void //where to use?? - when load file or stack, find the location if it is in swap.
-swap_in (size_t idx, uint8_t *kpage)
-{
+void
+swap_in (size_t sec_idx, uint8_t *kpage)
+{   
+    lock_acquire(&frame_lock);
+    struct ft_entry *fte = frame_table_find(kpage);
+    lock_release(&frame_lock);
 
+    struct spt_entry *spte = spt_search_page(fte->upage);
+
+    ASSERT (fte != NULL);
+
+    lock_acquire(&swap_table);
+    for (block_sector_t idx = 0; idx < SECTORS_PER_PAGE; idx++)
+    {
+        block_read(swap_block, sec_idx * SECTORS_PER_PAGE + idx, fte->upage + idx * BLOCK_SECTOR_SIZE);
+    }
+    bitmap_flip(swap_table, sec_idx);
+    lock_release(&swap_table);
+
+    spte->is_loaded = true;
 }
 
 size_t 
