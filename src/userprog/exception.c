@@ -14,6 +14,9 @@
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 
+//should delete
+extern struct list frame_table;
+
 static void kill (struct intr_frame *);
 static void page_fault (struct intr_frame *);
 
@@ -165,9 +168,11 @@ page_fault (struct intr_frame *f)
 
    if(spte != NULL && !spte->is_loaded)
    {  
+      // printf("frame list size: %d\n", list_size(&frame_table));
       struct ft_entry *fte = frame_table_get_frame(spte->upage, PAL_USER);
+      // printf("frame list size after get frame: %d\n\n", list_size(&frame_table));
       switch (spte->loc)
-      {
+      {  
          case BIN:
             load = spt_load_data_to_page(spte, fte->kpage);
             spte->loc = ON_FRAME;
@@ -176,7 +181,9 @@ page_fault (struct intr_frame *f)
             load = spt_load_data_to_page(spte, fte->kpage);
             break;
          case SWAP:
+            // printf("in spte->loc: SWAP, fault addr: %p\n", fault_addr);
             swap_in(spte->swap_idx, fte->kpage);
+            // printf("finished swap in\n\n");
             spte->loc = ON_FRAME;
             load = spte->is_loaded;
             break;
@@ -188,6 +195,7 @@ page_fault (struct intr_frame *f)
    }
    else
    {  
+      // printf("spt is load? : %d || spt is null? : %d ||  addr: %p\n", spte->is_loaded, spte == NULL, fault_addr);
       exit(-1);
    }
 

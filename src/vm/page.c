@@ -6,6 +6,7 @@
 #include "userprog/process.h"
 #include "vm/frame.h"
 #include "userprog/pagedir.h"
+#include <string.h>
 
 extern struct lock file_sys;
 
@@ -29,7 +30,8 @@ spt_destroy (struct hash *spt)
 {
     hash_destroy(spt, free_spte);
 }
-
+// int i = 0;
+// int j = 0;
 //not yet - insert is first goal for implementation.
 void 
 free_spte (struct hash_elem *e, void *aux UNUSED)
@@ -37,7 +39,8 @@ free_spte (struct hash_elem *e, void *aux UNUSED)
     struct spt_entry *spte = hash_entry(e, struct spt_entry, spage_elem);
     //write back???
     if (spte->is_loaded)
-    {
+    {   
+        // printf("all kpage: %p ,  this connected upage: %p\n", spte->kpage, spte->upage);
         frame_table_free_frame(spte->kpage);
         pagedir_clear_page(thread_current()->pagedir, spte->upage);
     }

@@ -22,6 +22,9 @@
 
 extern struct lock file_sys;
 
+//need to delete
+extern struct list frame_table;
+
 int parsing_arg (char *arguments, char **result);
 void stack_argument (char **parse, int count, void **esp);
 static thread_func start_process NO_RETURN;
@@ -211,14 +214,14 @@ process_wait (tid_t child_tid UNUSED)
 /* Free the current process's resources. */
 void
 process_exit (void)
-{
+{ 
   struct thread *cur = thread_current ();
   uint32_t *pd;
 
   file_close(cur->running_file);
   palloc_free_page(cur->fdt); //memory - leak
 
-  mmapt_destroy(&cur->mmap_table);
+  mmapt_destroy(&cur->mmap_table);  
   spt_destroy(&cur->spage_table);
   
   /* Destroy the current process's page directory and switch back
