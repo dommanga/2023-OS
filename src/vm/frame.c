@@ -73,7 +73,7 @@ frame_table_free_frame (uint8_t *kpage)
     ASSERT (fte != NULL);
     palloc_free_page(fte->kpage);
     list_remove(&fte->frame_elem);
-    //printf("list size in free frame func: %d\n", list_size(&frame_table));
+    // printf("list size in free frame func: %d\n", list_size(&frame_table));
 
     lock_release(&frame_lock);
     free(fte);

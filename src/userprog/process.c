@@ -666,10 +666,11 @@ grow_stack (uint8_t *addr)
   bool success = false;
     
   if (addr <= (uint8_t *) PHYS_BASE - STACK_GROW_MAX)
-  {
+  { 
     return success;
   }
   uint8_t *upage_num = pg_round_down(addr);
+  ASSERT(!pagedir_get_page(thread_current()->pagedir, upage_num));
 
   struct ft_entry *fte = frame_table_get_frame(upage_num, PAL_USER | PAL_ZERO);
   kpage = fte->kpage;
@@ -678,7 +679,7 @@ grow_stack (uint8_t *addr)
   spt_page_insert(spte);
 
   if (kpage != NULL) 
-    {
+    { 
       success = install_page (upage_num, kpage, true);
       if (success)
         {
@@ -686,7 +687,7 @@ grow_stack (uint8_t *addr)
           spte->kpage = kpage;
         }
       else
-        {
+        { 
           frame_table_free_frame(kpage);
           free(spte);
         }

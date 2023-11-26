@@ -145,7 +145,7 @@ void check_validation (void *p)
 }
 
 void check_buffer_validation (void *esp, void *buffer, unsigned size)
-{
+{ 
   if (buffer == NULL || is_kernel_vaddr(buffer))
     exit(-1);
   
@@ -156,14 +156,29 @@ void check_buffer_validation (void *esp, void *buffer, unsigned size)
     struct spt_entry *spte = spt_search_page(p);
 
     if (spte != NULL && !spte->is_loaded)
-    { 
+    { //I think I can delete this..? no need..?
       struct ft_entry *fte = frame_table_get_frame(p, PAL_USER);
-      bool load = spt_load_data_to_page(spte, fte->kpage);
+      bool load = false;
+      switch (spte->loc)
+      {  
+         case BIN:
+            load = spt_load_data_to_page(spte, fte->kpage);
+            spte->loc = ON_FRAME;
+            break;
+         case FILE:
+            load = spt_load_data_to_page(spte, fte->kpage);
+            break;
+         case SWAP:
+            swap_in(spte->swap_idx, fte->kpage);
+            spte->loc = ON_FRAME;
+            load = spte->is_loaded;
+            break;
+      }
       if (!load)
         exit(-1);
     }
-    else if(stack_access(esp, p))
-    {
+    else if(spte == NULL && stack_access(esp, p))
+    { 
       if(!grow_stack(p))
       { 
         exit(-1);
@@ -171,11 +186,11 @@ void check_buffer_validation (void *esp, void *buffer, unsigned size)
       spte = spt_search_page(p);
     }
     else if (!spte->writable)
-    {
+    { 
       exit(-1);
     }
     else if (spte == NULL)
-    {
+    { 
       exit(-1);
     }
     ASSERT (spte != NULL);
@@ -185,7 +200,7 @@ void check_buffer_validation (void *esp, void *buffer, unsigned size)
 }
 
 void check_str_validation (void *str, unsigned size)
-{
+{ 
   if (str == NULL || is_kernel_vaddr(str))
     exit(-1);
   
@@ -195,7 +210,7 @@ void check_str_validation (void *str, unsigned size)
   { 
     struct spt_entry *spte = spt_search_page(p);
     if(spte == NULL)
-    {
+    { 
       exit(-1);
     }
 

@@ -160,7 +160,7 @@ page_fault (struct intr_frame *f)
    bool load = false;
 
    if (fault_addr == NULL || !is_user_vaddr(fault_addr) || !not_present)
-   {
+   {  
       exit(-1);
    }
 
@@ -181,9 +181,7 @@ page_fault (struct intr_frame *f)
             load = spt_load_data_to_page(spte, fte->kpage);
             break;
          case SWAP:
-            // printf("in spte->loc: SWAP, fault addr: %p\n", fault_addr);
             swap_in(spte->swap_idx, fte->kpage);
-            // printf("finished swap in\n\n");
             spte->loc = ON_FRAME;
             load = spte->is_loaded;
             break;
@@ -191,6 +189,7 @@ page_fault (struct intr_frame *f)
    }
    else if(stack_access(f->esp, fault_addr))
    {  
+      ASSERT (spte == NULL);
       load = grow_stack((uint8_t *) fault_addr);
    }
    else
@@ -201,6 +200,7 @@ page_fault (struct intr_frame *f)
 
    if (!load)
    {  
+      // printf("it's me~~/n/n/n");
       exit(-1);
    }
    
