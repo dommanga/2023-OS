@@ -30,15 +30,13 @@ swap_in (size_t sec_idx, uint8_t *kpage)
     struct ft_entry *fte = frame_table_find(kpage);
     lock_release(&frame_lock);
     
-    // printf("SWAPPPP INNNNNN upage: %p\n\n", fte->upage);
     ASSERT (fte != NULL);
 
     struct spt_entry *spte = spt_search_page(fte->upage);
 
     ASSERT (spte != NULL);
 
-    
-    
+    //write to kpage from the block.
     for (block_sector_t idx = 0; idx < SECTORS_PER_PAGE; idx++)
     {   
         block_read(swap_block, sec_idx * SECTORS_PER_PAGE + idx, fte->kpage + idx * BLOCK_SECTOR_SIZE);
@@ -48,8 +46,11 @@ swap_in (size_t sec_idx, uint8_t *kpage)
     lock_release(&swap_lock);
 
     if (!install_page (spte->upage, kpage, spte->writable)) 
-    {
+    {   
+        lock_acquire(&frame_lock);
         frame_table_free_frame(kpage);
+        lock_release(&frame_lock);
+
         spte->is_loaded = false;
         return; 
     }
@@ -62,25 +63,20 @@ size_t
 swap_out (uint8_t *kpage)
 {   
     ASSERT(lock_held_by_current_thread(&frame_lock));
-    struct ft_entry *fte = frame_table_find(kpage);
 
-    // printf("SWAPPPP OUTTTTTT ordered: %s, upage: %p, owner: %s\n", thread_name(), fte->upage, fte->t->name);
+    struct ft_entry *fte = frame_table_find(kpage);
 
     ASSERT (fte != NULL);
     
     lock_acquire(&swap_lock);
     size_t saved_idx = bitmap_scan_and_flip(swap_table, 0, 1, false);
     lock_release(&swap_lock);
-    // printf("saved idx: %d\n", saved_idx);
-    // if(saved_idx == 2)
-    //     printf("saved_upage: %p\n", fte->upage);
 
+    //write to block from kpage.
     for (block_sector_t idx = 0; idx < SECTORS_PER_PAGE; idx++)
     {
         block_write(swap_block, saved_idx * SECTORS_PER_PAGE + idx, fte->kpage + idx * BLOCK_SECTOR_SIZE);
     }
-
-    
 
     return saved_idx;
 }

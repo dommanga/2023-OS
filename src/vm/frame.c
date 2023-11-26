@@ -22,13 +22,12 @@ frame_table_init (void)
     lock_init(&frame_lock);
 }
 
-// Get frame and store info for frame and if needed, do eviction. If success, return the ft_entry.
+// Get frame and store info for frame and if needed, do eviction. If success, return the ft_entry. NOTE THAT this function always PIN the current allocating kpage.
 struct ft_entry*
 frame_table_get_frame (uint8_t *upage, enum palloc_flags flag)
 {   struct thread *cur = thread_current();
 
-    if(!lock_held_by_current_thread(&frame_lock))
-        lock_acquire(&frame_lock);
+    lock_acquire(&frame_lock);
 
     uint8_t *kpage = palloc_get_page (flag);
 
@@ -36,18 +35,13 @@ frame_table_get_frame (uint8_t *upage, enum palloc_flags flag)
     {   
         struct ft_entry *fte = find_victim();
         ASSERT (fte != NULL);
-        // if (upage == 0x81b7000)
-        //     printf("evic victim!!!, get upage: %p\n", upage);
-        // if (fte->upage == 0x81b7000)
-        //     printf("victim upage: %p\n", fte->upage);
+
         evict_victim(fte);
 
-        // printf("who are you: %p\n", fte->upage);
         kpage = palloc_get_page (flag);
-        // printf("kpage allocated: %p\n", kpage);
     }
-    if (lock_held_by_current_thread(&frame_lock))
-            lock_release(&frame_lock);
+
+    lock_release(&frame_lock);
 
     ASSERT(kpage != NULL);
 
@@ -65,25 +59,19 @@ frame_table_get_frame (uint8_t *upage, enum palloc_flags flag)
     return fte;
 }
 
+//All operations should acquire frame lock before free frame.
 void
 frame_table_free_frame (uint8_t *kpage)
 {   
-        // printf("delete kpage: %p\n", kpage);
-    
-    if (!lock_held_by_current_thread(&frame_lock))
-        lock_acquire(&frame_lock);
+    ASSERT (lock_held_by_current_thread(&frame_lock));
 
     struct ft_entry *fte = frame_table_find(kpage);
-    if (fte == NULL)
-    {   
-        // printf("\nnull kpage: %p\n\n\n", kpage);
-    }
+
     ASSERT (fte != NULL);
+
     palloc_free_page(fte->kpage);
     list_remove(&fte->frame_elem);
-    // printf("list size in free frame func: %d\n", list_size(&frame_table));
 
-    lock_release(&frame_lock);
     free(fte);
 }
 
@@ -97,8 +85,7 @@ frame_table_find (uint8_t *kpage)
     for(e; e != list_end(&frame_table); e = list_next(e))
     {
         struct ft_entry *fte = list_entry(e, struct ft_entry, frame_elem);
-        // if(kpage == 0x81b7000)
-        //     printf("fte->kpage in search: %p\n\n", fte->kpage);
+
         if(fte->kpage == kpage)
         {
             return fte;
@@ -108,11 +95,12 @@ frame_table_find (uint8_t *kpage)
     return NULL;
 }
 
-//not yet
+
 struct ft_entry *
 find_victim (void)
 {   
     ASSERT (lock_held_by_current_thread(&frame_lock));
+
     struct list_elem *e = list_begin(&frame_table);
 
     while(true)
@@ -141,6 +129,7 @@ evict_victim (struct ft_entry *fte)
 {   
     ASSERT (fte != NULL);
     ASSERT (lock_held_by_current_thread(&frame_lock));
+
     struct thread *t = fte->t;
     struct spt_entry *spte = spt_search_page_from_thread(t, fte->upage);
 
@@ -159,49 +148,14 @@ evict_victim (struct ft_entry *fte)
     }
     else //ON_FRAME
     {   
-        // printf("I'm on frame\n");
         spte->loc = SWAP;
         spte->swap_idx = swap_out(fte->kpage);
-        // printf("swapped kpage: %p, my name: %s\n", fte->kpage, thread_name());
-        // printf("spte->loc: %d\n", spte->loc);
     }
     
     spte->is_loaded = false;
 
     pagedir_clear_page(t->pagedir, spte->upage);
-    // printf("cleared upage: %p\n", spte->upage);
     frame_table_free_frame(fte->kpage);
-}
-
-//free all frames held by current thread.
-void 
-frame_table_free_all_frames (void)
-{   
-    struct thread *cur = thread_current();
-
-    lock_acquire(&frame_lock);
-    
-    for (struct list_elem *e = list_begin(&frame_table); e != list_end(&frame_table); e = list_next(e))
-    {
-        struct ft_entry *fte = list_entry(e, struct ft_entry, frame_elem);
-
-        if(fte->t == cur)
-        {
-            frame_table_free_frame(fte->kpage);
-        }
-    }
-    lock_release(&frame_lock);
-
-}
-
-void 
-frame_table_pin (uint8_t *kpage)
-{   
-    lock_acquire(&frame_lock);
-    struct ft_entry *fte = frame_table_find(kpage);
-    ASSERT (fte != NULL);
-    lock_release(&frame_lock);
-    fte->pin = true;
 }
 
 void 

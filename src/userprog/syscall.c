@@ -94,13 +94,11 @@ syscall_handler (struct intr_frame *f UNUSED)
     break;
   case SYS_READ:
     get_arg(f->esp, arg, 3);
-    // check_validation((void *)arg[1]);
     check_buffer_validation(f->esp, (void *)arg[1], (unsigned int)arg[2]);
     f->eax = read((int)arg[0], (void *)arg[1], (unsigned int)arg[2]);
     break;
   case SYS_WRITE:
     get_arg(f->esp, arg, 3);
-    // check_validation((void *)arg[1]);
     check_str_validation((void *)arg[1], (unsigned int)arg[2]);
     f->eax = write((int)arg[0], (const void *)arg[1], (unsigned int)arg[2]);
     break;
@@ -118,7 +116,6 @@ syscall_handler (struct intr_frame *f UNUSED)
     break;
   case SYS_MMAP:
     get_arg(f->esp, arg, 2);
-    //check validation for what? buffer? string? or normal?
     f->eax = mmap ((int)arg[0], (void *)arg[1]);
     break;
   case SYS_MUNMAP:
@@ -159,10 +156,10 @@ void check_buffer_validation (void *esp, void *buffer, unsigned size)
     struct spt_entry *spte = spt_search_page(p);
 
     if (spte != NULL && !spte->is_loaded)
-    { //I think I can delete this..? no need..?
+    {
       struct ft_entry *fte = frame_table_get_frame(p, PAL_USER);
-      // printf("[check buffer] my checking address: %p, my name: %s, data location: %d\n", p, thread_name(), spte->loc);
       bool load = false;
+
       switch (spte->loc)
       {  
          case BIN:
@@ -178,6 +175,8 @@ void check_buffer_validation (void *esp, void *buffer, unsigned size)
             load = spte->is_loaded;
             break;
       }
+
+      //we do not unpin the allocated kpage like exception.c because we want to pin page until the end of the syscall read or write.
 
       if (!load)
         exit(-1);
@@ -198,8 +197,8 @@ void check_buffer_validation (void *esp, void *buffer, unsigned size)
     { 
       exit(-1);
     }
+
     ASSERT (spte != NULL);
-    frame_table_pin(spte->kpage);
   }
 }
 
@@ -214,37 +213,14 @@ void check_str_validation (void *str, unsigned size)
   { 
     struct spt_entry *spte = spt_search_page(p);
 
-    if (spte != NULL && !spte->is_loaded)
-    { //surely not need,....???
-      struct ft_entry *fte = frame_table_get_frame(p, PAL_USER);
-      // printf("[check STRING] my checking address: %p, my name: %s, data location: %d\n", p, thread_name(), spte->loc);
-      bool load = false;
-      switch (spte->loc)
-      {  
-         case BIN:
-            load = spt_load_data_to_page(spte, fte->kpage);
-            spte->loc = ON_FRAME;
-            break;
-         case FILE:
-            load = spt_load_data_to_page(spte, fte->kpage);
-            break;
-         case SWAP:
-            swap_in(spte->swap_idx, fte->kpage);
-            spte->loc = ON_FRAME;
-            load = spte->is_loaded;
-            break;
-      }
-     
-      if (!load)
-        exit(-1);
-    }
-    else if (spte == NULL)
+    if (spte == NULL)
     { 
       exit(-1);
     }
+
+    //we do not unpin the allocated kpage like exception.c because we want to pin page until the end of the syscall read or write.
+    
     ASSERT (spte != NULL);
-    // printf("STRINGGGGGGG\n");
-    frame_table_pin(spte->kpage);
   }
 }
 
@@ -429,7 +405,6 @@ void close (int fd)
 
 mapid_t mmap (int fd, void *addr)
 { 
-  // printf("syscall mmap start, my name: %s\n", thread_name());
   if (!is_user_vaddr(addr))
     return MAP_FAILED;
   if ( addr == 0x0 || addr == NULL || pg_ofs(addr) != 0)
@@ -474,7 +449,8 @@ mapid_t mmap (int fd, void *addr)
       return MAP_FAILED;
     }
   }
-    
+  //these above are all the kind of processing of ERROR.
+
   return mmapt_mapping_insert(reopened, fd, address);
 }
 

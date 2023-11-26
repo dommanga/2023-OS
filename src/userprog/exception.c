@@ -169,13 +169,8 @@ page_fault (struct intr_frame *f)
    struct spt_entry *spte = spt_search_page(fault_addr);
 
    if(spte != NULL && !spte->is_loaded)
-   {  
-      // printf("[FAULT] frame list size: %d\n", list_size(&frame_table));
-      
+   {        
       struct ft_entry *fte = frame_table_get_frame(spte->upage, PAL_USER);
-      // frame_table_pin(fte->kpage);
-      // printf("[FAULT] frame list size after get frame: %d\n", list_size(&frame_table));
-      // printf("[FAULT] my fault address: %p, my name: %s, data location: %d\n", fault_addr, thread_name(), spte->loc);
       switch (spte->loc)
       {  
          case BIN:
@@ -192,55 +187,20 @@ page_fault (struct intr_frame *f)
             break;
       }
       fte->pin = false;
-      //frame_table_unpin(fte->kpage);
    }
    else if(stack_access(f->esp, fault_addr))
    {  
-      //ASSERT (spte == NULL);
-      // printf("[FAULT] my location-stackaccess: %d\n", spte->loc);
-      // printf("[FAULT] my address: %p, my name: %s\n", fault_addr, thread_name());
-      // printf("[FAULT] current frame size: %d\n", list_size(&frame_table));
-
-      if (spte != NULL)
-         ASSERT(!pagedir_get_page(thread_current()->pagedir, fault_addr));
       load = grow_stack((uint8_t *) fault_addr);
    }
    else
    {  
-      // printf("spt is load? : %d || spt is null? : %d ||  addr: %p\n", spte->is_loaded, spte == NULL, fault_addr);
       exit(-1);
    }
 
    if (!load)
    {  
-      // printf("it's me~~/n/n/n");
       exit(-1);
    }
    
-   // if (spte->is_loaded)
-   // {
-   //    load = true;
-   //    if (!pagedir_get_page(thread_current()->pagedir, fault_addr))
-   //    {
-   //       exit(-1);
-   //    }
-   // }
-
-   // if (!load)
-   // {
-   //       exit(-1);
-   // }
-
-//   exit(-1);
-
-//   /* To implement virtual memory, delete the rest of the function
-//      body, and replace it with code that brings in the page to
-//      which fault_addr refers. */
-//   printf ("Page fault at %p: %s error %s page in %s context.\n",
-//           fault_addr,
-//           not_present ? "not present" : "rights violation",
-//           write ? "writing" : "reading",
-//           user ? "user" : "kernel");
-//   kill (f);
 }
 

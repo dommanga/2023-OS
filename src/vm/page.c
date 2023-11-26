@@ -9,6 +9,7 @@
 #include <string.h>
 
 extern struct lock file_sys;
+extern struct lock frame_lock;
 
 void free_spte (struct hash_elem *e, void *aux UNUSED);
 void free_mapping (struct hash_elem *e, void *aux UNUSED);
@@ -30,24 +31,24 @@ spt_destroy (struct hash *spt)
 {
     hash_destroy(spt, free_spte);
 }
-// int i = 0;
-// int j = 0;
-//not yet - insert is first goal for implementation.
+
+//Free the spte, we do not need to write back. All of the case of writing back is disposed in munmap syscall and eviction part.
 void 
 free_spte (struct hash_elem *e, void *aux UNUSED)
 {   
     struct spt_entry *spte = hash_entry(e, struct spt_entry, spage_elem);
-    //write back???
+    
     if (spte->is_loaded)
     {   
-        // printf("all kpage: %p ,  this connected upage: %p\n", spte->kpage, spte->upage);
+        lock_acquire(&frame_lock);
         frame_table_free_frame(spte->kpage);
+        lock_release(&frame_lock);
+
         pagedir_clear_page(thread_current()->pagedir, spte->upage);
     }
     free(spte);
 }
 
-//not complete - location
 struct spt_entry *
 spt_entry_init (struct file *file, off_t ofs, uint8_t *upage, uint32_t read_bytes, uint32_t zero_bytes, bool writable, enum location loc)
 {
@@ -146,7 +147,11 @@ spt_load_data_to_page (struct spt_entry *spte, uint8_t *kpage)
     if (file_read (spte->backed_file, kpage, spte->page_read_bytes) != (int) spte->page_read_bytes)
     { 
         lock_release(&file_sys);
+        
+        lock_acquire(&frame_lock);
         frame_table_free_frame(kpage);
+        lock_release(&frame_lock);
+
         return false; 
     }
     lock_release(&file_sys);
@@ -155,7 +160,10 @@ spt_load_data_to_page (struct spt_entry *spte, uint8_t *kpage)
     /* Add the page to the process's address space. */
     if (!install_page (spte->upage, kpage, spte->writable)) 
     {
+        lock_acquire(&frame_lock);
         frame_table_free_frame(kpage);
+        lock_release(&frame_lock);
+
         return false; 
     }
     spte->kpage = kpage;
@@ -229,7 +237,6 @@ mmapt_mapping_insert(struct file *f, int fd, uint8_t *start_page)
       ofs += PGSIZE;
     }
 
-    // printf("finish mmap, mapid: %d\n", mapping->mapid);
     return mapping->mapid;
 }
 
@@ -250,7 +257,6 @@ mmapt_mapid_delete (mapid_t mapid)
 void
 mmapt_mapping_delete (struct mmapt_entry *mapping)
 {   
-    // printf("delete mapid(%d) from current thread: %s\n", mapping->mapid, thread_name());
     struct thread *cur = thread_current();
 
     off_t ofs = 0;
@@ -270,7 +276,11 @@ mmapt_mapping_delete (struct mmapt_entry *mapping)
                 lock_release(&file_sys);
             }
             pagedir_clear_page(cur->pagedir, spte->upage);
+            
+            lock_acquire(&frame_lock);
             frame_table_free_frame(spte->kpage);
+            lock_release(&frame_lock);
+            
             spt_page_delete(spte);
         }
 

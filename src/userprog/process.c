@@ -22,10 +22,8 @@
 
 extern struct lock file_sys;
 
-extern struct lock fram_lock;
+extern struct lock frame_lock;
 
-//need to delete
-extern struct list frame_table;
 
 int parsing_arg (char *arguments, char **result);
 void stack_argument (char **parse, int count, void **esp);
@@ -499,7 +497,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
           break;
         }
     }
-  // printf("thread name: %s\n", thread_name());
   /* Set up stack. */
   if (!setup_stack (esp))
     goto done;
@@ -593,28 +590,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-      // /* Get a page of memory. */
-      // struct ft_entry *fte = frame_table_get_frame(upage, PAL_USER);
-      // uint8_t *kpage = fte->kpage;
-
-      // if (kpage == NULL)
-      //   return false;
-
-      // /* Load this page. */
-      // if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-      //   { 
-      //     frame_table_free_frame(kpage);
-      //     return false; 
-      //   }
-      // memset (kpage + page_read_bytes, 0, page_zero_bytes);
-
-      // /* Add the page to the process's address space. */
-      // if (!install_page (upage, kpage, writable)) 
-      //   {
-      //     frame_table_free_frame(kpage);
-      //     return false; 
-      //   }
-
       struct spt_entry *spte = spt_entry_init(file, ofs, upage, page_read_bytes, page_zero_bytes, writable, BIN);
       spt_page_insert(spte);
 
@@ -634,7 +609,6 @@ setup_stack (void **esp)
 {
   uint8_t *kpage;
   bool success = false;
-  // printf("stack access to initialize\n");
   struct ft_entry *fte = frame_table_get_frame(((uint8_t *) PHYS_BASE) - PGSIZE, PAL_USER | PAL_ZERO);
   kpage = fte->kpage;
   
@@ -646,17 +620,17 @@ setup_stack (void **esp)
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
         { 
-          // printf("initialize stack: %p\n", ((uint8_t *) PHYS_BASE) - PGSIZE);
-            // printf("%s - mapped kpage : %p\n\n", thread_name(), kpage);
           *esp = PHYS_BASE;
           spte->is_loaded = true;
           spte->kpage = kpage;
           fte->pin = false;
-          //frame_table_unpin(fte->kpage);
         }
       else
         {
+          lock_acquire(&frame_lock);
           frame_table_free_frame(kpage);
+          lock_release(&frame_lock);
+
           free(spte);
         }
     }
@@ -664,7 +638,6 @@ setup_stack (void **esp)
   return success;
 }
 
-//need to revise
 bool 
 grow_stack (uint8_t *addr)
 {
@@ -692,11 +665,13 @@ grow_stack (uint8_t *addr)
           spte->is_loaded = true;
           spte->kpage = kpage;
           fte->pin = false;
-          //frame_table_unpin(fte->kpage);
         }
       else
         { 
+          lock_acquire(&frame_lock);
           frame_table_free_frame(kpage);
+          lock_release(&frame_lock);
+
           free(spte);
         }
     }
