@@ -56,7 +56,7 @@ frame_table_get_frame (uint8_t *upage, enum palloc_flags flag)
     fte->kpage = kpage;
     fte->t = cur;
     fte->upage = upage;
-    fte->pin = false;
+    fte->pin = true;
 
     lock_acquire(&frame_lock);
     list_push_back(&frame_table, &fte->frame_elem);

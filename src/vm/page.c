@@ -270,6 +270,7 @@ mmapt_mapping_delete (struct mmapt_entry *mapping)
                 lock_release(&file_sys);
             }
             pagedir_clear_page(cur->pagedir, spte->upage);
+            frame_table_free_frame(spte->kpage);
             spt_page_delete(spte);
         }
 

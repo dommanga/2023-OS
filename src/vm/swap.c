@@ -26,10 +26,9 @@ swap_table_init (size_t block_size)
 void
 swap_in (size_t sec_idx, uint8_t *kpage)
 {   
-    if (!lock_held_by_current_thread(&frame_lock))
-        lock_acquire(&frame_lock);
-
+    lock_acquire(&frame_lock);
     struct ft_entry *fte = frame_table_find(kpage);
+    lock_release(&frame_lock);
     
     // printf("SWAPPPP INNNNNN upage: %p\n\n", fte->upage);
     ASSERT (fte != NULL);

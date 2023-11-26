@@ -651,6 +651,8 @@ setup_stack (void **esp)
           *esp = PHYS_BASE;
           spte->is_loaded = true;
           spte->kpage = kpage;
+          fte->pin = false;
+          //frame_table_unpin(fte->kpage);
         }
       else
         {
@@ -689,6 +691,8 @@ grow_stack (uint8_t *addr)
         {
           spte->is_loaded = true;
           spte->kpage = kpage;
+          fte->pin = false;
+          //frame_table_unpin(fte->kpage);
         }
       else
         { 

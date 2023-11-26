@@ -12,6 +12,7 @@
 #include "userprog/process.h"
 #include "vm/page.h"
 #include "vm/frame.h"
+#include "vm/swap.h"
 
 //synchronization of file system
 struct lock file_sys;
@@ -159,7 +160,6 @@ void check_buffer_validation (void *esp, void *buffer, unsigned size)
 
     if (spte != NULL && !spte->is_loaded)
     { //I think I can delete this..? no need..?
-      lock_acquire(&frame_lock);
       struct ft_entry *fte = frame_table_get_frame(p, PAL_USER);
       // printf("[check buffer] my checking address: %p, my name: %s, data location: %d\n", p, thread_name(), spte->loc);
       bool load = false;
@@ -178,8 +178,7 @@ void check_buffer_validation (void *esp, void *buffer, unsigned size)
             load = spte->is_loaded;
             break;
       }
-      if (lock_held_by_current_thread(&frame_lock))
-         lock_release(&frame_lock);
+
       if (!load)
         exit(-1);
     }
@@ -217,7 +216,6 @@ void check_str_validation (void *str, unsigned size)
 
     if (spte != NULL && !spte->is_loaded)
     { //surely not need,....???
-      lock_acquire(&frame_lock);
       struct ft_entry *fte = frame_table_get_frame(p, PAL_USER);
       // printf("[check STRING] my checking address: %p, my name: %s, data location: %d\n", p, thread_name(), spte->loc);
       bool load = false;
@@ -236,7 +234,7 @@ void check_str_validation (void *str, unsigned size)
             load = spte->is_loaded;
             break;
       }
-      lock_release(&frame_lock);
+     
       if (!load)
         exit(-1);
     }

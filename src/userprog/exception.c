@@ -172,7 +172,6 @@ page_fault (struct intr_frame *f)
    {  
       // printf("[FAULT] frame list size: %d\n", list_size(&frame_table));
       
-      lock_acquire(&frame_lock);
       struct ft_entry *fte = frame_table_get_frame(spte->upage, PAL_USER);
       // frame_table_pin(fte->kpage);
       // printf("[FAULT] frame list size after get frame: %d\n", list_size(&frame_table));
@@ -192,9 +191,8 @@ page_fault (struct intr_frame *f)
             load = spte->is_loaded;
             break;
       }
-      if (lock_held_by_current_thread(&frame_lock))
-         lock_release(&frame_lock);
-      // frame_table_unpin(fte->kpage);
+      fte->pin = false;
+      //frame_table_unpin(fte->kpage);
    }
    else if(stack_access(f->esp, fault_addr))
    {  
