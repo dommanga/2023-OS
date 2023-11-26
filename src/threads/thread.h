@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/synch.h"
+#include <hash.h>
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -18,6 +19,7 @@ enum thread_status
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
+
 #define TID_ERROR ((tid_t) -1)          /* Error value for tid_t. */
 
 /* Thread priorities. */
@@ -119,6 +121,11 @@ struct thread
     int fd_idx;
 
     struct file *running_file;
+
+    void *esp;
+
+    struct hash spage_table;
+    struct hash mmap_table;
 
     unsigned magic;                     /* Detects stack overflow. */
   };

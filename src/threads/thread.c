@@ -11,6 +11,8 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "vm/frame.h"
+#include "vm/page.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -93,6 +95,8 @@ thread_init (void)
   list_init (&ready_list);
   list_init (&all_list);
 
+  frame_table_init();
+  
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
@@ -205,6 +209,8 @@ thread_create (const char *name, int priority,
   t->fd_idx = 2; //0, 1 is std I/O
   t->fdt[FD_STDIN] = 1;
   t->fdt[FD_STDOUT] = 2;
+
+  mmapt_init(t);
 
   /* Add to run queue. */
   thread_unblock (t);

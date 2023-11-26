@@ -19,6 +19,8 @@
 #define PGBITS  12                         /* Number of offset bits. */
 #define PGSIZE  (1 << PGBITS)              /* Bytes in a page. */
 #define PGMASK  BITMASK(PGSHIFT, PGBITS)   /* Page offset bits (0:12). */
+#define STACK_GROW_MAX (1 << 23) //8MB max grow size.
+#define STACK_PUSHA 32
 
 /* Offset within a page. */
 static inline unsigned pg_ofs (const void *va) {
