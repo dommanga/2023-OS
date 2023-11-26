@@ -26,10 +26,12 @@ swap_table_init (size_t block_size)
 void
 swap_in (size_t sec_idx, uint8_t *kpage)
 {   
-    lock_acquire(&frame_lock);
-    struct ft_entry *fte = frame_table_find(kpage);
-    lock_release(&frame_lock);
+    if (!lock_held_by_current_thread(&frame_lock))
+        lock_acquire(&frame_lock);
 
+    struct ft_entry *fte = frame_table_find(kpage);
+    
+    // printf("SWAPPPP INNNNNN upage: %p\n\n", fte->upage);
     ASSERT (fte != NULL);
 
     struct spt_entry *spte = spt_search_page(fte->upage);
@@ -52,6 +54,7 @@ swap_in (size_t sec_idx, uint8_t *kpage)
         spte->is_loaded = false;
         return; 
     }
+
     spte->kpage = kpage;
     spte->is_loaded = true;
 }
@@ -59,9 +62,10 @@ swap_in (size_t sec_idx, uint8_t *kpage)
 size_t 
 swap_out (uint8_t *kpage)
 {   
-    lock_acquire(&frame_lock);
+    ASSERT(lock_held_by_current_thread(&frame_lock));
     struct ft_entry *fte = frame_table_find(kpage);
-    lock_release(&frame_lock);
+
+    // printf("SWAPPPP OUTTTTTT ordered: %s, upage: %p, owner: %s\n", thread_name(), fte->upage, fte->t->name);
 
     ASSERT (fte != NULL);
     

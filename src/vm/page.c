@@ -120,6 +120,21 @@ spt_search_page (uint8_t *upage)
     return hash_entry(e, struct spt_entry, spage_elem);
 }
 
+struct spt_entry *
+spt_search_page_from_thread (struct thread *t, uint8_t *upage)
+{   
+    struct spt_entry *spte = (struct spt_entry *)malloc(sizeof(struct spt_entry));
+    spte->upage = pg_round_down(upage);
+
+    struct hash_elem *e = hash_find(&t->spage_table, &spte->spage_elem);
+
+    free(spte);
+
+    if (!e)
+        return NULL;
+    return hash_entry(e, struct spt_entry, spage_elem);
+}
+
 bool 
 spt_load_data_to_page (struct spt_entry *spte, uint8_t *kpage)
 {   
@@ -213,7 +228,8 @@ mmapt_mapping_insert(struct file *f, int fd, uint8_t *start_page)
       upage += PGSIZE;
       ofs += PGSIZE;
     }
-    
+
+    // printf("finish mmap, mapid: %d\n", mapping->mapid);
     return mapping->mapid;
 }
 
@@ -234,6 +250,7 @@ mmapt_mapid_delete (mapid_t mapid)
 void
 mmapt_mapping_delete (struct mmapt_entry *mapping)
 {   
+    // printf("delete mapid(%d) from current thread: %s\n", mapping->mapid, thread_name());
     struct thread *cur = thread_current();
 
     off_t ofs = 0;

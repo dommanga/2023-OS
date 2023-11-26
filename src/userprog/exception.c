@@ -14,6 +14,8 @@
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 
+extern struct lock frame_lock;
+
 //should delete
 extern struct list frame_table;
 
@@ -168,9 +170,13 @@ page_fault (struct intr_frame *f)
 
    if(spte != NULL && !spte->is_loaded)
    {  
-      // printf("frame list size: %d\n", list_size(&frame_table));
+      // printf("[FAULT] frame list size: %d\n", list_size(&frame_table));
+      
+      lock_acquire(&frame_lock);
       struct ft_entry *fte = frame_table_get_frame(spte->upage, PAL_USER);
-      // printf("frame list size after get frame: %d\n\n", list_size(&frame_table));
+      // frame_table_pin(fte->kpage);
+      // printf("[FAULT] frame list size after get frame: %d\n", list_size(&frame_table));
+      // printf("[FAULT] my fault address: %p, my name: %s, data location: %d\n", fault_addr, thread_name(), spte->loc);
       switch (spte->loc)
       {  
          case BIN:
@@ -186,10 +192,19 @@ page_fault (struct intr_frame *f)
             load = spte->is_loaded;
             break;
       }
+      if (lock_held_by_current_thread(&frame_lock))
+         lock_release(&frame_lock);
+      // frame_table_unpin(fte->kpage);
    }
    else if(stack_access(f->esp, fault_addr))
    {  
-      ASSERT (spte == NULL);
+      //ASSERT (spte == NULL);
+      // printf("[FAULT] my location-stackaccess: %d\n", spte->loc);
+      // printf("[FAULT] my address: %p, my name: %s\n", fault_addr, thread_name());
+      // printf("[FAULT] current frame size: %d\n", list_size(&frame_table));
+
+      if (spte != NULL)
+         ASSERT(!pagedir_get_page(thread_current()->pagedir, fault_addr));
       load = grow_stack((uint8_t *) fault_addr);
    }
    else

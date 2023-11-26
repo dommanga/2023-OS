@@ -26,23 +26,28 @@ frame_table_init (void)
 struct ft_entry*
 frame_table_get_frame (uint8_t *upage, enum palloc_flags flag)
 {   struct thread *cur = thread_current();
+
+    if(!lock_held_by_current_thread(&frame_lock))
+        lock_acquire(&frame_lock);
+
     uint8_t *kpage = palloc_get_page (flag);
 
     if (kpage == NULL)
     {   
-        lock_acquire(&frame_lock);
         struct ft_entry *fte = find_victim();
-        lock_release(&frame_lock);
         ASSERT (fte != NULL);
         // if (upage == 0x81b7000)
         //     printf("evic victim!!!, get upage: %p\n", upage);
         // if (fte->upage == 0x81b7000)
         //     printf("victim upage: %p\n", fte->upage);
         evict_victim(fte);
+
         // printf("who are you: %p\n", fte->upage);
         kpage = palloc_get_page (flag);
         // printf("kpage allocated: %p\n", kpage);
     }
+    if (lock_held_by_current_thread(&frame_lock))
+            lock_release(&frame_lock);
 
     ASSERT(kpage != NULL);
 
@@ -63,8 +68,11 @@ frame_table_get_frame (uint8_t *upage, enum palloc_flags flag)
 void
 frame_table_free_frame (uint8_t *kpage)
 {   
+        // printf("delete kpage: %p\n", kpage);
     
-    lock_acquire(&frame_lock);
+    if (!lock_held_by_current_thread(&frame_lock))
+        lock_acquire(&frame_lock);
+
     struct ft_entry *fte = frame_table_find(kpage);
     if (fte == NULL)
     {   
@@ -132,8 +140,9 @@ void
 evict_victim (struct ft_entry *fte)
 {   
     ASSERT (fte != NULL);
+    ASSERT (lock_held_by_current_thread(&frame_lock));
     struct thread *t = fte->t;
-    struct spt_entry *spte = spt_search_page(fte->upage);
+    struct spt_entry *spte = spt_search_page_from_thread(t, fte->upage);
 
     ASSERT (spte != NULL);
     
@@ -153,10 +162,14 @@ evict_victim (struct ft_entry *fte)
         // printf("I'm on frame\n");
         spte->loc = SWAP;
         spte->swap_idx = swap_out(fte->kpage);
+        // printf("swapped kpage: %p, my name: %s\n", fte->kpage, thread_name());
+        // printf("spte->loc: %d\n", spte->loc);
     }
     
     spte->is_loaded = false;
+
     pagedir_clear_page(t->pagedir, spte->upage);
+    // printf("cleared upage: %p\n", spte->upage);
     frame_table_free_frame(fte->kpage);
 }
 
@@ -186,6 +199,7 @@ frame_table_pin (uint8_t *kpage)
 {   
     lock_acquire(&frame_lock);
     struct ft_entry *fte = frame_table_find(kpage);
+    ASSERT (fte != NULL);
     lock_release(&frame_lock);
     fte->pin = true;
 }
@@ -195,6 +209,7 @@ frame_table_unpin (uint8_t *kpage)
 {   
     lock_acquire(&frame_lock);
     struct ft_entry *fte = frame_table_find(kpage);
+    ASSERT (fte != NULL);
     lock_release(&frame_lock);
 
     fte->pin = false;

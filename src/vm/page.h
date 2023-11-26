@@ -51,6 +51,7 @@ struct spt_entry *spt_entry_init_zero(uint8_t *upage, bool writable);
 bool spt_page_insert(struct spt_entry *spte);
 bool spt_page_delete(struct spt_entry *spte);
 struct spt_entry *spt_search_page(uint8_t *upage);
+struct spt_entry *spt_search_page_from_thread (struct thread *t, uint8_t *upage);
 bool spt_load_data_to_page(struct spt_entry *spte, uint8_t *kpage);
 
 void mmapt_init(struct thread *t);

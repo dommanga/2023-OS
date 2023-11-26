@@ -16,6 +16,8 @@
 //synchronization of file system
 struct lock file_sys;
 
+extern struct lock frame_lock;
+
 static void syscall_handler (struct intr_frame *);
 void get_arg (void *esp, int *arg, int count);
 void check_validation (void *p);
@@ -157,7 +159,9 @@ void check_buffer_validation (void *esp, void *buffer, unsigned size)
 
     if (spte != NULL && !spte->is_loaded)
     { //I think I can delete this..? no need..?
+      lock_acquire(&frame_lock);
       struct ft_entry *fte = frame_table_get_frame(p, PAL_USER);
+      // printf("[check buffer] my checking address: %p, my name: %s, data location: %d\n", p, thread_name(), spte->loc);
       bool load = false;
       switch (spte->loc)
       {  
@@ -174,6 +178,8 @@ void check_buffer_validation (void *esp, void *buffer, unsigned size)
             load = spte->is_loaded;
             break;
       }
+      if (lock_held_by_current_thread(&frame_lock))
+         lock_release(&frame_lock);
       if (!load)
         exit(-1);
     }
@@ -194,7 +200,6 @@ void check_buffer_validation (void *esp, void *buffer, unsigned size)
       exit(-1);
     }
     ASSERT (spte != NULL);
-
     frame_table_pin(spte->kpage);
   }
 }
@@ -209,18 +214,38 @@ void check_str_validation (void *str, unsigned size)
   for (p; p < str + size; p = pg_round_up((void *)(uintptr_t)p + 1))
   { 
     struct spt_entry *spte = spt_search_page(p);
-    if(spte == NULL)
-    { 
-      exit(-1);
-    }
 
-    if (!spte->is_loaded)
-    {
+    if (spte != NULL && !spte->is_loaded)
+    { //surely not need,....???
+      lock_acquire(&frame_lock);
       struct ft_entry *fte = frame_table_get_frame(p, PAL_USER);
-      bool load = spt_load_data_to_page(spte, fte->kpage);
+      // printf("[check STRING] my checking address: %p, my name: %s, data location: %d\n", p, thread_name(), spte->loc);
+      bool load = false;
+      switch (spte->loc)
+      {  
+         case BIN:
+            load = spt_load_data_to_page(spte, fte->kpage);
+            spte->loc = ON_FRAME;
+            break;
+         case FILE:
+            load = spt_load_data_to_page(spte, fte->kpage);
+            break;
+         case SWAP:
+            swap_in(spte->swap_idx, fte->kpage);
+            spte->loc = ON_FRAME;
+            load = spte->is_loaded;
+            break;
+      }
+      lock_release(&frame_lock);
       if (!load)
         exit(-1);
     }
+    else if (spte == NULL)
+    { 
+      exit(-1);
+    }
+    ASSERT (spte != NULL);
+    // printf("STRINGGGGGGG\n");
     frame_table_pin(spte->kpage);
   }
 }
@@ -405,7 +430,8 @@ void close (int fd)
 }
 
 mapid_t mmap (int fd, void *addr)
-{
+{ 
+  // printf("syscall mmap start, my name: %s\n", thread_name());
   if (!is_user_vaddr(addr))
     return MAP_FAILED;
   if ( addr == 0x0 || addr == NULL || pg_ofs(addr) != 0)
@@ -418,7 +444,7 @@ mapid_t mmap (int fd, void *addr)
 
   if (f == NULL)
     return MAP_FAILED;
-
+  
   lock_acquire(&file_sys);
   struct file *reopened = file_reopen(f);
 
@@ -455,6 +481,6 @@ mapid_t mmap (int fd, void *addr)
 }
 
 void munmap (mapid_t mapid)
-{
+{ 
   mmapt_mapid_delete (mapid);
 }

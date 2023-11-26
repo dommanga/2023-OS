@@ -22,6 +22,8 @@
 
 extern struct lock file_sys;
 
+extern struct lock fram_lock;
+
 //need to delete
 extern struct list frame_table;
 
@@ -497,7 +499,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
           break;
         }
     }
-
+  // printf("thread name: %s\n", thread_name());
   /* Set up stack. */
   if (!setup_stack (esp))
     goto done;
@@ -632,10 +634,10 @@ setup_stack (void **esp)
 {
   uint8_t *kpage;
   bool success = false;
-  
+  // printf("stack access to initialize\n");
   struct ft_entry *fte = frame_table_get_frame(((uint8_t *) PHYS_BASE) - PGSIZE, PAL_USER | PAL_ZERO);
   kpage = fte->kpage;
-
+  
   struct spt_entry *spte = spt_entry_init_zero(fte->upage, true);
   spt_page_insert(spte);
 
@@ -643,7 +645,9 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        {
+        { 
+          // printf("initialize stack: %p\n", ((uint8_t *) PHYS_BASE) - PGSIZE);
+            // printf("%s - mapped kpage : %p\n\n", thread_name(), kpage);
           *esp = PHYS_BASE;
           spte->is_loaded = true;
           spte->kpage = kpage;
